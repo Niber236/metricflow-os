@@ -1,0 +1,39 @@
+{
+  "name": "metricflow",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "pack:watch": "nodemon -L --watch app --watch components --watch lib --ext ts,tsx,css --exec \"npx repomix --style xml\""
+  },
+  "dependencies": {
+    "@google/genai": "^2.4.0",
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/supabase-js": "^2.105.4",
+    "framer-motion": "^12.38.0",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^1.14.0",
+    "next": "16.2.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "recharts": "^3.8.1",
+    "stripe": "^22.2.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "nodemon": "^3.1.14",
+    "repomix": "^1.14.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

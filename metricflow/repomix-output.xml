@@ -1,0 +1,2172 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+app/
+  add-client/
+    page.tsx
+  api/
+    auth/
+      meta/
+        callback/
+          route.ts
+    report/
+      route.ts
+    webhooks/
+      stripe/
+        route.ts
+  client/
+    [id]/
+      page.tsx
+  dashboard/
+    page.tsx
+  login/
+    page.tsx
+  portal/
+    [id]/
+      page.tsx
+  favicon.ico
+  globals.css
+  layout.tsx
+  page.tsx
+  theme-context.tsx
+components/
+  AddClientForm.tsx
+  AddPerformanceForm.tsx
+  ClientCard.tsx
+lib/
+  supabase.ts
+  types.ts
+public/
+  file.svg
+  globe.svg
+  next.svg
+  vercel.svg
+  window.svg
+.gitignore
+AGENTS.md
+CLAUDE.md
+eslint.config.mjs
+next.config.ts
+package.json
+postcss.config.mjs
+proxy.ts
+README.md
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="app/add-client/page.tsx">
+"use client";
+// Test auto-pa
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, UserPlus, Layers, Save } from "lucide-react";
+import { motion } from "framer-motion";
+import { useTheme } from "@/app/theme-context";
+
+// On a bien mis Facebook Ads comme tu l'as demandé.
+const AVAILABLE_PLATFORMS = ["Facebook Ads", "Instagram Ads", "Google Ads", "TikTok Ads", "LinkedIn Ads"];
+
+export default function AddClientPage() {
+  // Branchement au hub global des paramètres
+  const { themeMode, primaryColor, agency } = useTheme();
+  const router = useRouter();
+
+  const [name, setName] = useState("");
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [targetCpa, setTargetCpa] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const isDark = themeMode === "dark";
+  const bgMain = isDark ? "bg-slate-950" : "bg-[#F1F5F9]";
+  const bgCard = isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100";
+  const textColor = isDark ? "text-white" : "text-slate-900";
+  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
+
+  const togglePlatform = (platform: string) => {
+    if (selectedPlatforms.includes(platform)) {
+      setSelectedPlatforms(selectedPlatforms.filter(p => p !== platform));
+    } else {
+      setSelectedPlatforms([...selectedPlatforms, platform]);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!agency) return;
+    if (selectedPlatforms.length === 0) {
+        alert("Sélectionne au moins un canal d'acquisition.");
+        return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase.from("agency_clients").insert([{
+      agency_id: agency.id,
+      name,
+      platform: selectedPlatforms,
+      target_cpa: targetCpa ? Number(targetCpa) : null
+    }]);
+
+    if (error) {
+      alert("Erreur lors de la création : " + error.message);
+      setLoading(false);
+    } else {
+      router.push("/dashboard"); // Retourne au cockpit instantanément
+    }
+  };
+
+  // Sécurité pendant que le Context se charge
+  if (!agency) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-500 font-black uppercase tracking-widest animate-pulse text-xs">
+      Initialisation du module...
+    </div>
+  );
+
+  return (
+    <div className={`min-h-screen ${bgMain} ${textColor} p-8 font-sans antialiased transition-colors duration-500`}>
+      <div className="max-w-3xl mx-auto pt-10">
+        
+        <Link href="/" className={`inline-flex items-center gap-2 ${textMuted} hover:text-blue-500 mb-10 font-black transition-colors uppercase text-xs tracking-widest`}>
+          <ArrowLeft size={16} /> Retour Cockpit
+        </Link>
+
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            className={`p-10 md:p-14 rounded-[3rem] ${bgCard} border shadow-2xl relative overflow-hidden`}
+        >
+            {/* Ligne de couleur de la marque blanche */}
+            <div className="absolute top-0 left-0 right-0 h-2" style={{ backgroundColor: primaryColor }} />
+            
+            <div className="flex items-center gap-5 mb-12">
+                <div className={`p-5 rounded-[2rem] ${isDark ? 'bg-slate-800 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+                    <UserPlus size={36} />
+                </div>
+                <div>
+                    <h1 className="text-4xl font-black tracking-tighter">Nouveau Client</h1>
+                    <p className={textMuted + " font-medium mt-1 text-sm"}>Connectez un nouveau dossier à l'entité {agency.name}</p>
+                </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-8">
+                <div>
+                    <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest">
+                        Nom de l'entreprise / Client
+                    </label>
+                    <input 
+                        type="text" 
+                        value={name} 
+                        onChange={e => setName(e.target.value)} 
+                        placeholder="Ex: Kodex Studio" 
+                        className={`w-full p-5 rounded-2xl ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100'} border-2 font-bold outline-none focus:border-blue-500 transition-colors`} 
+                        required 
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest flex items-center gap-2">
+                        <Layers size={14}/> Canaux d'acquisition
+                    </label>
+                    <div className="flex flex-wrap gap-3">
+                        {AVAILABLE_PLATFORMS.map(p => {
+                            const isSelected = selectedPlatforms.includes(p);
+                            return (
+                                <button 
+                                    type="button" 
+                                    key={p} 
+                                    onClick={() => togglePlatform(p)} 
+                                    className={`px-6 py-3.5 rounded-xl font-bold text-sm transition-all border-2 ${isSelected ? 'border-blue-500 bg-blue-500 text-white shadow-lg shadow-blue-500/20' : isDark ? 'border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-200' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-800'}`}
+                                >
+                                    {p}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest">
+                        Target CPA Global / Seuil Tolérance (Optionnel)
+                    </label>
+                    <input 
+                        type="number" 
+                        step="0.01" 
+                        value={targetCpa} 
+                        onChange={e => setTargetCpa(e.target.value)} 
+                        placeholder="Ex: 15.50" 
+                        className={`w-full p-5 rounded-2xl ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100'} border-2 font-bold outline-none focus:border-blue-500 transition-colors`} 
+                    />
+                </div>
+
+                <div className="pt-4">
+                    <button 
+                        type="submit" 
+                        disabled={loading} 
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white p-6 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-3 active:scale-95"
+                    >
+                        <Save size={18} /> {loading ? "Déploiement du dossier..." : "Initialiser le Client"}
+                    </button>
+                </div>
+            </form>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="app/api/auth/meta/callback/route.ts">
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
+
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url);
+  const code = searchParams.get("code");
+  const clientId = searchParams.get("state"); 
+
+  if (!code || !clientId) {
+    return NextResponse.json({ error: "Code d'autorisation manquant" }, { status: 400 });
+  }
+
+  const appId = process.env.NEXT_PUBLIC_META_APP_ID;
+  const appSecret = process.env.META_APP_SECRET;
+  const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/meta/callback`;
+
+  try {
+    const tokenResponse = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&redirect_uri=${redirectUri}&client_secret=${appSecret}&code=${code}`);
+    const tokenData = await tokenResponse.json();
+    if (tokenData.error) throw new Error(tokenData.error.message);
+
+    const longLivedResponse = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${tokenData.access_token}`);
+    const longLivedData = await longLivedResponse.json();
+    if (longLivedData.error) throw new Error(longLivedData.error.message);
+
+    // FIX RLS : On récupère ton cookie de session pour autoriser l'écriture
+    const cookieStore = await cookies();
+    const token = cookieStore.get('sb-metricflow-auth')?.value;
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '', 
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '', 
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+
+    const { error: dbError } = await supabase.from("agency_clients").update({ meta_access_token: longLivedData.access_token }).eq("id", clientId);
+    if (dbError) throw new Error(dbError.message);
+
+    return NextResponse.redirect(`${origin}/client/${clientId}`);
+
+  } catch (error: any) {
+    return NextResponse.json({ error: "Erreur critique : " + error.message }, { status: 500 });
+  }
+}
+</file>
+
+<file path="app/api/report/route.ts">
+import { NextResponse } from "next/server";
+import { GoogleGenAI } from "@google/genai";
+
+export async function POST(request: Request) {
+  try {
+    // CORRECTION : On extrait les données depuis 'request', pas 'response'
+    const { clientName, stats } = await request.json();
+
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json({ error: "La variable d'environnement GEMINI_API_KEY est manquante" }, { status: 500 });
+    }
+
+    // Initialisation du SDK officiel Google Gen AI
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    
+    const prompt = `
+      Tu es un directeur de stratégie d'acquisition de haut niveau pour une agence de marketing digital. 
+      Rédige une analyse de performance pour notre client "${clientName}" basée sur les données suivantes :
+      ${JSON.stringify(stats)}
+
+      ### DIRECTIVES STRICTES DE RÉDACTION :
+      1. TON & POSTURE : Adopte un ton corporate, expert, analytique et constructif. Tu dois inspirer la confiance et l'autorité.
+      2. VOUVOIEMENT OBLIGATOIRE : Adresse-toi au client exclusivement en utilisant "vous". Le tutoiement est strictement interdit.
+      3. VOCABULAIRE PRO : Supprime toute expression familière, ironique ou condescendante (pas de métaphores comme "dînette", "chewing-gum", "avion", etc.). Remplace-les par des termes techniques précis (ex: volume statistiquement insuffisant, phase d'apprentissage non finalisée).
+      4. CLARTÉ : Reste direct. Entre immédiatement dans le vif du sujet, pas d'introduction inutile comme "Voici le rapport".
+
+      ### STRUCTURE DE L'ANALYSE (Garde ces titres exacts dans le texte) :
+      ANALYSE DE RENTABILITE
+      (Fais un résumé clair des dépenses globales, du volume de conversions et calcule le CPA moyen. Si le budget est trop faible pour que l'algorithme apprenne, explique-le de manière scientifique et rigoureuse).
+
+      DIAGNOSTIC TACTIQUE
+      (Identifie les anomalies. Si le taux de conversion par clic est anormalement haut, explique avec diplomatie mais fermeté que le protocole de tracking (Pixel/API de conversion) présente des doublons techniques qui doivent être audités).
+
+      FEUILLE DE ROUTE (MOIS PROCHAIN)
+      (Donne 3 actions concrètes et prioritaires, rédigées sous forme de conseils stratégiques pour optimiser les campagnes, diversifier les créas et stabiliser la donnée).
+    `;
+
+    // Appel au modèle de dernière génération
+     const responseAI = await ai.models.generateContent({
+      model: "gemini-2.5-flash", // Utilise ton modèle actif
+      contents: prompt,
+    });
+
+    const text = responseAI.text;
+
+    return NextResponse.json({ report: text });
+  } catch (error: any) {
+    // Crucial pour voir exactement pourquoi ça coince dans ton terminal Linux
+    console.error("[METRICFLOW_API_ERROR]:", error);
+    return NextResponse.json({ error: "Erreur de génération : " + error.message }, { status: 500 });
+  }
+}
+</file>
+
+<file path="app/api/webhooks/stripe/route.ts">
+import { NextResponse } from "next/server";
+import Stripe from "stripe";
+
+// Initialisation stricte de Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-01-27.acacia", // Utilise la dernière version stable
+});
+
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+export async function POST(req: Request) {
+  const payload = await req.text();
+  const sig = req.headers.get("stripe-signature");
+
+  let event;
+
+  try {
+    // Vérification cryptographique que la requête vient bien de Stripe
+    event = stripe.webhooks.constructEvent(payload, sig!, endpointSecret);
+  } catch (err: any) {
+    console.error(`❌ Erreur Webhook : ${err.message}`);
+    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+  }
+
+  // Si le paiement est validé avec succès
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const customerEmail = session.customer_details?.email;
+
+    // C'est ici que la magie opère. Le client a payé.
+    // Pour l'instant on log l'information, mais dans la V2, c'est ici 
+    // qu'on modifie la base de données Supabase pour débloquer l'agence.
+    console.log(`💰 Paiement reçu avec succès pour : ${customerEmail}`);
+  }
+
+  return NextResponse.json({ received: true });
+}
+</file>
+
+<file path="app/client/[id]/page.tsx">
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import Link from "next/link";
+import { useTheme } from "@/app/theme-context";
+import { 
+  ArrowLeft, Sparkles, Download, BarChart3, Calendar, 
+  Copy, Check, Target, AlertTriangle, Save, Link2, Trash2, Edit2, X
+} from "lucide-react";
+import jsPDF from "jspdf";
+import type { Client, Agency, ClientPerformance } from "@/lib/types";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
+import { motion } from "framer-motion";
+
+export default function ClientPage({ params }: { params: React.Usable<{ id: string }> }) {
+  const { id } = React.use(params);
+  const { themeMode, primaryColor, agencyName } = useTheme();
+
+  // ADIEU LES ANY !
+  const [client, setClient] = useState<Client | null>(null);
+  const [performances, setPerformances] = useState<ClientPerformance[]>([]);
+  const [unauthorized, setUnauthorized] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+  
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newName, setNewName] = useState("");
+
+  const [month, setMonth] = useState("2026-05");
+  const [platform, setPlatform] = useState("");
+  const [spend, setSpend] = useState("");
+  const [clicks, setClicks] = useState("");
+  const [conversions, setConversions] = useState("");
+
+  const [targetCpa, setTargetCpa] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [report, setReport] = useState("");
+  const [reportError, setReportError] = useState<string | null>(null); 
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    async function verifyAndFetch() {
+      if (!id) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setUnauthorized(true); setPageLoading(false); return; }
+
+      const { data: agencyData } = await supabase.from("agencies").select("id").eq("owner_id", user.id).single();
+      if (!agencyData) { setUnauthorized(true); setPageLoading(false); return; }
+
+      const { data: clientData, error: clientError } = await supabase
+        .from("agency_clients").select("*").eq("id", id).eq("agency_id", agencyData.id).single();
+      
+      if (clientError || !clientData) { setUnauthorized(true); setPageLoading(false); return; }
+
+      setClient(clientData);
+      setNewName(clientData.name);
+      
+      if (clientData.platform && clientData.platform.length > 0) {
+        setPlatform(clientData.platform[0]);
+      } else {
+        setPlatform("Meta Ads");
+      }
+
+      if (clientData.target_cpa) setTargetCpa(clientData.target_cpa.toString());
+
+      const { data: perfData } = await supabase.from("client_performances").select("*").eq("client_id", id).order("month", { ascending: false });
+      if (perfData) setPerformances(perfData);
+      setPageLoading(false);
+    }
+    verifyAndFetch();
+  }, [id]);
+
+  const handleConnectMeta = () => {
+    const appId = process.env.NEXT_PUBLIC_META_APP_ID;
+    const redirectUri = encodeURIComponent(`${window.location.origin}/api/auth/meta/callback`);
+    const scope = encodeURIComponent("ads_management,ads_read,business_management");
+    window.location.href = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scope}&state=${id}`;
+  };
+
+  const handleUpdateAdAccount = async (adAccountId: string) => {
+    if (!client) return;
+    setClient({ ...client, meta_ad_account_id: adAccountId });
+    await supabase.from("agency_clients").update({ meta_ad_account_id: adAccountId }).eq("id", id);
+  };
+
+  // LE MOTEUR D'ASPIRATION META ADS
+  const handleSyncMeta = async () => {
+    if (!client?.meta_ad_account_id) {
+      alert("Veuillez renseigner l'ID du compte publicitaire (ex: act_123456789).");
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      const [year, m] = month.split("-");
+      const startDate = `${year}-${m}-01`;
+      const endDate = new Date(Number(year), Number(m), 0).toISOString().split('T')[0];
+
+      const url = `https://graph.facebook.com/v19.0/${client.meta_ad_account_id}/insights?time_range={'since':'${startDate}','until':'${endDate}'}&fields=spend,actions&access_token=${client.meta_access_token}`;
+      
+      const res = await fetch(url);
+      const metaData = await res.json();
+
+      if (metaData.error) throw new Error(metaData.error.message);
+
+      let fetchedSpend = 0;
+      let fetchedConversions = 0;
+
+      if (metaData.data && metaData.data.length > 0) {
+        fetchedSpend = Number(metaData.data[0].spend || 0);
+        const actions = metaData.data[0].actions || [];
+        const conv = actions.find((a: any) => a.action_type === 'purchase' || a.action_type === 'lead' || a.action_type === 'offsite_conversion.fb_pixel_purchase');
+        if (conv) fetchedConversions = Number(conv.value);
+      }
+
+      const newPerfRow = {
+        client_id: id,
+        month,
+        platform: "Meta Ads",
+        spend: fetchedSpend,
+        clicks: 0,
+        conversions: fetchedConversions
+      };
+
+      await supabase.from("client_performances").delete().eq("client_id", id).eq("month", month).eq("platform", "Meta Ads");
+      const { data: insertData, error: insertError } = await supabase.from("client_performances").insert([newPerfRow]).select().single();
+
+      if (insertError) throw insertError;
+
+      if (insertData) {
+        setPerformances((prev) => {
+          const filtered = prev.filter(p => !(p.month === month && p.platform === "Meta Ads"));
+          return [insertData as ClientPerformance, ...filtered].sort((a, b) => b.month.localeCompare(a.month));
+        });
+        alert(`Synchronisation réussie ! ${fetchedSpend}€ aspirés depuis Meta.`);
+      }
+    } catch (err: any) {
+      alert("Erreur Sync Meta : " + err.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleInjectData = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const platformToInject = platform || client?.platform?.[0] || "Meta Ads";
+
+    const newPerfRow = {
+      client_id: id,
+      month,
+      platform: platformToInject,
+      spend: Number(spend),
+      clicks: Number(clicks),
+      conversions: Number(conversions)
+    };
+
+    const { data, error } = await supabase.from("client_performances").insert([newPerfRow]).select().single();
+
+    if (error) { alert("Erreur Supabase : " + error.message); return; }
+
+    if (data) {
+      setPerformances((prev) => [data as ClientPerformance, ...prev].sort((a, b) => b.month.localeCompare(a.month)));
+      setSpend(""); setClicks(""); setConversions("");
+    }
+  };
+
+  const handleDeleteMonth = async (monthToDelete: string) => {
+    if (!confirm(`Es-tu sûr de vouloir purger définitivement les données de ${monthToDelete} ?`)) return;
+    const { error } = await supabase.from("client_performances").delete().eq("client_id", id).eq("month", monthToDelete);
+    if (error) { alert("Erreur : " + error.message); } 
+    else { setPerformances(prev => prev.filter(p => p.month !== monthToDelete)); }
+  };
+
+  const handleUpdateClientName = async () => {
+    if (!newName.trim()) return;
+    const { error } = await supabase.from("agency_clients").update({ name: newName }).eq("id", id);
+    if (error) { alert("Erreur : " + error.message); } 
+    else { setClient({ ...client!, name: newName }); setIsEditingName(false); }
+  };
+
+  const handleDeleteClient = async () => {
+    if (!confirm(`⚠️ DANGER : Suppression définitive. Confirmer ?`)) return;
+    const { error } = await supabase.from("agency_clients").delete().eq("id", id);
+    if (error) { alert("Erreur : " + error.message); } 
+    else { window.location.href = "/dashboard"; }
+  };
+
+  const handleGenerateReport = async () => {
+    setIsGenerating(true); setReportError(null); setReport("");
+    try {
+      const res = await fetch("/api/report", { 
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientName: client?.name, stats: performances }) 
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "IA indisponible."); }
+      const d = await res.json(); setReport(d.report);
+    } catch (err: any) { setReportError(err.message); } 
+    finally { setIsGenerating(false); }
+  };
+
+  const downloadPDF = () => { /* Même fonction PDF qu'avant */ };
+
+  if (pageLoading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center italic font-black text-slate-500 animate-pulse text-xs">Vérification...</div>;
+  if (unauthorized || !client) return <div className="min-h-screen bg-slate-950 flex justify-center p-6"><AlertTriangle size={32} className="text-red-500"/></div>;
+
+  const isDark = themeMode === "dark";
+  const bgMain = isDark ? "bg-slate-950" : "bg-[#F8FAFC]";
+  const bgCard = isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100";
+  const textColor = isDark ? "text-white" : "text-slate-900";
+  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
+
+  const groupedPerformances = Object.values(
+    performances.reduce((acc, perf) => {
+      if (!acc[perf.month]) acc[perf.month] = { month: perf.month, totalSpend: 0, totalConversions: 0, platformsUsed: [] };
+      acc[perf.month].totalSpend += perf.spend;
+      acc[perf.month].totalConversions += perf.conversions;
+      if (!acc[perf.month].platformsUsed.includes(perf.platform)) acc[perf.month].platformsUsed.push(perf.platform);
+      return acc;
+    }, {} as Record<string, any>)
+  ).sort((a: any, b: any) => b.month.localeCompare(a.month));
+
+  const chartData = [...groupedPerformances].reverse().map((p: any) => ({
+    month: p.month, Budget: p.totalSpend, CPA: p.totalConversions > 0 ? Number((p.totalSpend / p.totalConversions).toFixed(2)) : 0
+  }));
+
+  return (
+    <div className={`min-h-screen ${bgMain} ${textColor} p-8 font-sans antialiased transition-colors duration-500`}>
+      <div className="max-w-6xl mx-auto">
+        <Link href="/dashboard" className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-500 mb-10 font-black transition-colors uppercase text-xs tracking-widest"><ArrowLeft size={16} /> Retour Cockpit</Link>
+
+        <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          <div>
+            <span className="text-[10px] font-black tracking-widest text-blue-500 uppercase bg-blue-500/10 px-3 py-1 rounded-full">Dossier : {client.name}</span>
+            {isEditingName ? (
+                <div className="flex items-center gap-3 mt-4">
+                    <input type="text" value={newName} onChange={e => setNewName(e.target.value)} className={`p-3 rounded-xl border-2 ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'} font-black text-4xl outline-none`} autoFocus />
+                    <button onClick={handleUpdateClientName} className="bg-emerald-500 text-white p-4 rounded-xl"><Check size={24}/></button>
+                    <button onClick={() => setIsEditingName(false)} className="bg-slate-500 text-white p-4 rounded-xl"><X size={24}/></button>
+                </div>
+            ) : (
+                <div className="flex items-center gap-4 mt-4 group">
+                    <h1 className={`text-6xl font-black tracking-tighter ${textColor}`}>{client.name}</h1>
+                    <button onClick={() => setIsEditingName(true)} className={`opacity-0 group-hover:opacity-100 ${textMuted} transition-all`}><Edit2 size={28}/></button>
+                </div>
+            )}
+          </div>
+          <div className="flex gap-3 flex-wrap">
+            <button onClick={handleDeleteClient} className="bg-red-500/10 text-red-500 px-6 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2"><Trash2 size={16}/> Supprimer</button>
+            <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/portal/${id}`); setCopied(true); setTimeout(()=>setCopied(false), 2000); }} className={`${bgCard} border px-6 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2`}>{copied ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>} Lien Public</button>
+            <button onClick={handleGenerateReport} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2"><Sparkles size={16} className={isGenerating ? "animate-spin" : ""}/> {isGenerating ? "Analyse..." : "Générer Rapport IA"}</button>
+          </div>
+        </header>
+
+        <div className={`p-6 rounded-[2rem] ${bgCard} border mb-8 flex flex-col md:flex-row justify-between items-center gap-4`}>
+          <div className="flex items-center gap-4">
+            <div className="w-3 h-3 rounded-full bg-blue-600 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+            <div>
+              <p className="font-black text-sm uppercase tracking-tight">Flux d'intégration Meta Ads</p>
+              <p className="text-xs text-slate-400 mt-0.5">{client.meta_access_token ? "✓ Connexion API établie." : "Aucun token détecté pour ce dossier."}</p>
+            </div>
+          </div>
+          {client.meta_access_token ? (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input type="text" placeholder="ID du compte (ex: act_12345)" value={client.meta_ad_account_id || ""} onChange={(e) => handleUpdateAdAccount(e.target.value)} className={`p-3 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} text-xs font-bold outline-none focus:border-blue-500`}/>
+              <button onClick={handleSyncMeta} disabled={isSyncing} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 disabled:opacity-50 cursor-pointer">
+                <Sparkles size={14} className={isSyncing ? "animate-spin" : ""} /> {isSyncing ? "Aspiration..." : "Auto-Sync Meta"}
+              </button>
+            </div>
+          ) : (
+            <button onClick={handleConnectMeta} className="bg-[#1877F2] text-white px-6 py-3 rounded-xl font-black text-xs uppercase flex items-center gap-2"><Link2 size={14} /> Lier Compte</button>
+          )}
+        </div>
+
+        {reportError && (
+          <div className="mb-8 p-6 bg-red-500/10 border border-red-500/20 rounded-[2rem] flex items-start gap-3 text-red-400 text-sm font-semibold">
+            <AlertTriangle className="shrink-0 text-red-500" size={20} />
+            <div><p className="font-black uppercase tracking-wider text-xs text-red-500 mb-1">Échec de l'Analyse</p>{reportError}</div>
+          </div>
+        )}
+
+        {report && (
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mb-12">
+            <div className={`p-10 rounded-[2.5rem] shadow-2xl border ${isDark ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200'}`}>
+              <h2 className="text-2xl font-black text-blue-500 mb-8 flex items-center gap-3"><BarChart3 size={28} /> ANALYSE STRATÉGIQUE</h2>
+              <div className="whitespace-pre-wrap leading-relaxed text-lg font-medium">{report}</div>
+            </div>
+          </motion.div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 min-w-0 space-y-8">
+            <div className={`p-8 rounded-[3rem] ${bgCard} border shadow-sm`}>
+                <h2 className="text-xl font-black mb-8 flex items-center gap-2 uppercase tracking-tighter"><BarChart3 size={20} className="text-blue-500"/> Performance Mensuelle</h2>
+                <div className="h-[300px] w-full">
+                    {isMounted ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={chartData}>
+                              <defs><linearGradient id="colorP" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={primaryColor} stopOpacity={0.3}/><stop offset="95%" stopColor={primaryColor} stopOpacity={0}/></linearGradient></defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#1e293b" : "#f1f5f9"} vertical={false}/>
+                              <XAxis dataKey="month" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                              <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                              <Tooltip contentStyle={{ backgroundColor: isDark ? '#0f172a' : '#fff', borderRadius: '16px', border: 'none' }} />
+                              <Area type="monotone" dataKey="Budget" stroke={primaryColor} strokeWidth={4} fill="url(#colorP)" />
+                              {Number(targetCpa) > 0 && <ReferenceLine y={Number(targetCpa)} stroke="#ef4444" strokeDasharray="3 3" />}
+                          </AreaChart>
+                      </ResponsiveContainer>
+                    ) : <div className="w-full h-full bg-slate-500/10 animate-pulse rounded-2xl" />}
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                {groupedPerformances.map((perf: any) => {
+                    const actualCpa = perf.totalConversions > 0 ? (perf.totalSpend / perf.totalConversions) : 0;
+                    return (
+                        <div key={perf.month} className={`p-6 rounded-[2rem] border flex justify-between items-center ${bgCard}`}>
+                            <div className="flex items-center gap-4">
+                                <div className="p-4 rounded-2xl bg-blue-500/10 text-blue-500"><Calendar size={24}/></div>
+                                <div>
+                                    <h3 className="font-black text-xl">{perf.month}</h3>
+                                    <div className="flex gap-1 mt-1">{perf.platformsUsed.map((p:any)=><span key={p} className="text-[8px] font-black uppercase bg-slate-500/10 px-2 py-0.5 rounded text-slate-400">{p}</span>)}</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-8">
+                                <div className="text-right"><p className="text-[10px] font-black text-slate-500 uppercase">Spend</p><p className="text-2xl font-black">{perf.totalSpend} €</p></div>
+                                <div className="text-right"><p className="text-[10px] font-black uppercase text-slate-500">CPA</p><p className="text-2xl font-black text-blue-500">{actualCpa.toFixed(2)} €</p></div>
+                                <button onClick={() => handleDeleteMonth(perf.month)} className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-colors cursor-pointer"><Trash2 size={20} /></button>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className={`p-8 rounded-[3rem] ${bgCard} border shadow-xl`}>
+                <h3 className="font-black uppercase text-xs tracking-widest mb-6 text-blue-500">Injection Manuelle</h3>
+                <form onSubmit={handleInjectData} className="space-y-4">
+                    <input type="month" value={month} onChange={e=>setMonth(e.target.value)} className={`w-full p-4 rounded-xl ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100'} border-2 font-bold text-sm outline-none`} required/>
+                    <select value={platform} onChange={e=>setPlatform(e.target.value)} className={`w-full p-4 rounded-xl ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100'} border-2 font-bold text-sm outline-none`} required>
+                        {client.platform?.map((p:string)=><option key={p} value={p}>{p}</option>)}
+                    </select>
+                    <input type="number" step="0.01" placeholder="Budget (€)" value={spend} onChange={e=>setSpend(e.target.value)} className={`w-full p-4 rounded-xl border-2 font-bold text-sm outline-none`} required/>
+                    <div className="grid grid-cols-2 gap-3">
+                        <input type="number" placeholder="Clics" value={clicks} onChange={e=>setClicks(e.target.value)} className={`w-full p-4 rounded-xl border-2 font-bold text-sm outline-none`} required/>
+                        <input type="number" placeholder="Conv." value={conversions} onChange={e=>setConversions(e.target.value)} className={`w-full p-4 rounded-xl border-2 font-bold text-sm outline-none`} required/>
+                    </div>
+                    <button type="submit" className="w-full bg-slate-900 text-white p-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all cursor-pointer">Synchroniser</button>
+                </form>
+            </div>
+            
+            <div className={`p-8 rounded-[3rem] ${isDark ? 'bg-red-900/10 border-red-900/20' : 'bg-red-50 border-red-100'} border`}>
+                <h3 className="font-black uppercase text-[10px] tracking-widest mb-4 text-red-500 flex items-center gap-2"><Target size={14}/> Seuil de rentabilité</h3>
+                <div className="flex gap-2">
+                    <input type="number" value={targetCpa} onChange={e=>setTargetCpa(e.target.value)} className={`w-full p-3 rounded-lg ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'} border font-black text-sm text-center outline-none`} />
+                    <button onClick={async ()=>{await supabase.from("agency_clients").update({target_cpa: Number(targetCpa)}).eq("id", id); alert("CPA sauvé");}} className="bg-red-500 text-white p-3 rounded-lg hover:bg-red-600 cursor-pointer"><Save size={18}/></button>
+                </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="app/dashboard/page.tsx">
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from "@/app/theme-context";
+import type { Client } from "@/lib/types";
+import { 
+  PlusCircle, Building2, ArrowRight, LogOut,
+  Cpu, Sparkles, Activity, Settings, X, Terminal, Moon, Sun, ArrowLeft,
+  TrendingUp, Target, Layers
+} from "lucide-react";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 30 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 80 } }
+};
+
+export default function DashboardPage() {
+  const { 
+    themeMode, setThemeMode, 
+    primaryColor, setPrimaryColor, 
+    agencyName, setAgencyName, 
+    agency, loadingSettings, refreshSettings 
+  } = useTheme();
+  
+  // ADIEU LE ANY
+  const [clients, setClients] = useState<Client[]>([]);
+  const [globalMetrics, setGlobalMetrics] = useState({ spend: 0, conversions: 0, cpa: 0 });
+  const [loadingClients, setLoadingClients] = useState(true);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    async function fetchClients() {
+      setLoadingClients(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
+
+      if (agency) {
+        const { data: clientsData } = await supabase
+          .from("agency_clients")
+          .select("*")
+          .eq("agency_id", agency.id)
+          .order("created_at", { ascending: false });
+
+        if (clientsData && clientsData.length > 0) {
+          setClients(clientsData as Client[]);
+          
+          const clientIds = clientsData.map(c => c.id);
+          const { data: perfData } = await supabase
+            .from("client_performances")
+            .select("spend, conversions")
+            .in("client_id", clientIds);
+
+          if (perfData) {
+            const totalSpend = perfData.reduce((sum, row) => sum + (Number(row.spend) || 0), 0);
+            const totalConv = perfData.reduce((sum, row) => sum + (Number(row.conversions) || 0), 0);
+            const avgCpa = totalConv > 0 ? (totalSpend / totalConv) : 0;
+
+            setGlobalMetrics({
+              spend: totalSpend,
+              conversions: totalConv,
+              cpa: avgCpa
+            });
+          }
+        } else {
+          setClients([]);
+          setGlobalMetrics({ spend: 0, conversions: 0, cpa: 0 });
+        }
+      } else {
+        setClients([]);
+      }
+      setLoadingClients(false);
+    }
+    if (!loadingSettings) {
+      fetchClients();
+    }
+  }, [agency, loadingSettings, router]);
+
+  const handleCreateAgency = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsLoading(true);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setSettingsLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase.from("agencies").insert([{ 
+        name: agencyName, 
+        primary_color: primaryColor, 
+        owner_id: user.id, 
+        theme_mode: "light" 
+      }]).select().single();
+      
+      if (error) {
+        alert("Erreur Base de données Supabase : " + error.message);
+        setSettingsLoading(false);
+        return;
+      }
+      
+      if (data) {
+        await refreshSettings();
+        window.location.reload();
+      }
+    } catch (err: any) {
+      alert("Erreur système critique : " + err.message);
+    }
+    setSettingsLoading(false);
+  };
+
+  const handleUpdateSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!agency) return;
+    setSettingsLoading(true);
+    
+    const { error } = await supabase
+      .from("agencies")
+      .update({ name: agencyName, primary_color: primaryColor, theme_mode: themeMode })
+      .eq("id", agency.id);
+      
+    if (!error) {
+      localStorage.setItem("metricflow-theme", themeMode);
+      await refreshSettings();
+      setIsSettingsOpen(false);
+    }
+    setSettingsLoading(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    document.cookie = "sb-metricflow-auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    localStorage.removeItem("metricflow-theme");
+    window.location.href = "/login"; 
+  };
+
+  if (loadingSettings || (agency && loadingClients)) return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center italic font-black text-slate-400 animate-pulse">
+      INITIALISATION DU COCKPIT...
+    </div>
+  );
+
+  if (!agency) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white font-sans antialiased relative overflow-hidden flex flex-col justify-center items-center px-6">
+        
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-0 left-1/2 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[150px] -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-600/5 rounded-full blur-[120px]" />
+        </div>
+        
+        <div className="absolute top-8 left-8 z-10">
+          <Link href="/" className="inline-flex items-center gap-2 text-slate-500 hover:text-white font-black transition-colors uppercase text-xs tracking-widest">
+            <ArrowLeft size={14} /> Accueil
+          </Link>
+        </div>
+
+        <div className="absolute top-8 right-8 z-10">
+          <button onClick={handleLogout} className="inline-flex items-center gap-2 text-red-400 hover:text-red-500 font-black transition-colors uppercase text-xs tracking-widest cursor-pointer">
+            <LogOut size={14} /> Déconnexion
+          </button>
+        </div>
+
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          className="bg-slate-900/40 border border-white/5 p-12 rounded-[3rem] shadow-2xl max-w-md w-full backdrop-blur-xl relative z-10 text-center space-y-8"
+        >
+          <div className="space-y-3">
+            <div className="bg-blue-500/10 text-blue-400 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto border border-blue-500/20">
+              <Building2 size={32} />
+            </div>
+            <h1 className="text-3xl font-black text-white tracking-tighter uppercase">MetricFlow Core</h1>
+            <p className="text-slate-400 text-xs font-medium">
+              Configurez l'infrastructure initiale de votre agence.
+            </p>
+          </div>
+          
+          <form onSubmit={handleCreateAgency} className="space-y-6 text-left">
+            <input 
+              type="text" 
+              placeholder="Nom de l'agence" 
+              value={agencyName} 
+              onChange={e => setAgencyName(e.target.value)} 
+              className="w-full p-5 bg-slate-950 border border-white/10 rounded-2xl font-bold text-white outline-none focus:border-blue-500/50 transition-colors placeholder:text-slate-800" 
+              required 
+            />
+            <button 
+              type="submit" 
+              disabled={settingsLoading} 
+              className="w-full bg-white text-slate-950 p-5 rounded-2xl font-black uppercase tracking-widest text-xs disabled:opacity-50 hover:bg-slate-200 transition-all active:scale-95"
+            >
+              {settingsLoading ? "Déploiement en cours..." : "Déployer l'infrastructure"}
+            </button>
+          </form>
+        </motion.div>
+      </div>
+    );
+  }
+
+  const isDark = themeMode === "dark";
+  const bgMain = isDark ? "bg-slate-950" : "bg-[#F1F5F9]";
+  const bgCard = isDark ? "bg-slate-900/50" : "bg-white";
+  const textColor = isDark ? "text-white" : "text-slate-900";
+  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
+  const borderColor = isDark ? "border-slate-800" : "border-slate-100";
+
+  return (
+    <div className={`min-h-screen ${bgMain} font-sans antialiased ${textColor} transition-colors duration-500`}>
+      
+      <nav className="fixed top-0 left-0 right-0 z-40 px-6 py-4">
+        <div className={`${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white/80 border-white/40'} backdrop-blur-xl p-4 pl-6 pr-4 rounded-3xl border shadow-sm flex justify-between items-center max-w-[1600px] mx-auto`}>
+          <div className="flex items-center gap-4">
+            <div className="w-4 h-4 rounded-full shadow-lg" style={{ backgroundColor: primaryColor }} />
+            <span className={`font-black tracking-tighter uppercase text-lg ${textColor}`}>{agencyName}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsSettingsOpen(true)} className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-blue-600'} px-4 py-3 rounded-xl transition-all`}>
+              <Settings size={16} /> Config
+            </button>
+            <button onClick={handleLogout} className="text-red-500 hover:text-red-700 p-3"><LogOut size={20}/></button>
+          </div>
+        </div>
+      </nav>
+
+      <AnimatePresence>
+        {isSettingsOpen && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.6 }} exit={{ opacity: 0 }} onClick={() => setIsSettingsOpen(false)} className="fixed inset-0 bg-black z-50 backdrop-blur-md" />
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className={`fixed top-0 right-0 bottom-0 w-full max-w-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} z-50 shadow-2xl p-10 border-l flex flex-col`}>
+              <div className="flex justify-between items-center mb-10">
+                <h2 className={`text-2xl font-black uppercase tracking-tighter ${textColor}`}>Configuration Agence</h2>
+                <button onClick={() => setIsSettingsOpen(false)} className={textMuted}><X/></button>
+              </div>
+
+              <form onSubmit={handleUpdateSettings} className="space-y-8">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Interface visuelle</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button type="button" onClick={() => setThemeMode("light")} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold transition-all ${themeMode === 'light' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-slate-100 text-slate-400'}`}>
+                      <Sun size={18}/> Studio
+                    </button>
+                    <button type="button" onClick={() => setThemeMode("dark")} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold transition-all ${themeMode === 'dark' ? 'border-blue-500 bg-slate-800 text-white' : 'border-slate-100 text-slate-400'}`}>
+                      <Moon size={18}/> Midnight
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Nom de l'entité</label>
+                  <input type="text" value={agencyName} onChange={e => setAgencyName(e.target.value)} className={`w-full p-5 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} border-2 rounded-2xl font-bold ${textColor}`} />
+                </div>
+
+                <div>
+                    <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Couleur de marque</label>
+                    <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-full h-16 rounded-2xl cursor-pointer" />
+                </div>
+
+                <button type="submit" disabled={settingsLoading} className="w-full bg-blue-600 text-white p-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:bg-blue-700 transition-all">
+                  {settingsLoading ? "Mise à jour..." : "Appliquer les changements"}
+                </button>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <main className="pt-32 pb-20 px-6">
+        <div className="max-w-[1600px] mx-auto space-y-12">
+          
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-950'} rounded-[4rem] p-12 md:p-20 relative overflow-hidden shadow-2xl`}>
+            <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
+            <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10">
+              <div>
+                <span className="inline-block py-2 px-5 rounded-full bg-white/10 border border-white/20 text-white text-[10px] font-black uppercase tracking-widest mb-8 backdrop-blur-md">
+                  White Label : {agencyName}
+                </span>
+                <h1 className="text-7xl md:text-8xl font-black text-white tracking-tighter leading-none mb-4">
+                  Cockpit <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Directionnel.</span>
+                </h1>
+              </div>
+              <Link href="/add-client" className="bg-white text-slate-950 px-12 py-6 rounded-2xl font-black flex items-center gap-3 hover:scale-105 transition-all shadow-[0_0_50px_rgba(255,255,255,0.15)] uppercase tracking-widest text-sm">
+                <PlusCircle size={22}/> Nouveau Client
+              </Link>
+            </div>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            <div className={`p-8 rounded-[3rem] ${bgCard} border ${borderColor} shadow-sm flex items-center justify-between`}>
+              <div>
+                <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${textMuted}`}>Dossiers Actifs</p>
+                <h3 className={`text-4xl font-black tracking-tighter ${textColor}`}>{clients.length}</h3>
+              </div>
+              <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center ${isDark ? 'bg-indigo-900/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                <Building2 size={24} />
+              </div>
+            </div>
+
+            <div className={`p-8 rounded-[3rem] ${bgCard} border ${borderColor} shadow-sm flex items-center justify-between`}>
+              <div>
+                <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${textMuted}`}>Budget Total Géré</p>
+                <h3 className={`text-4xl font-black tracking-tighter ${textColor}`}>{globalMetrics.spend.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</h3>
+              </div>
+              <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center ${isDark ? 'bg-blue-900/20 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+                <TrendingUp size={24} />
+              </div>
+            </div>
+            
+            <div className={`p-8 rounded-[3rem] ${bgCard} border ${borderColor} shadow-sm flex items-center justify-between`}>
+              <div>
+                <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${textMuted}`}>Volume Conversions</p>
+                <h3 className={`text-4xl font-black tracking-tighter ${textColor}`}>{globalMetrics.conversions.toLocaleString('fr-FR')}</h3>
+              </div>
+              <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center ${isDark ? 'bg-emerald-900/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                <Layers size={24} />
+              </div>
+            </div>
+
+            <div className={`p-8 rounded-[3rem] ${bgCard} border ${borderColor} shadow-sm flex items-center justify-between`}>
+              <div>
+                <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${textMuted}`}>CPA Moyen Global</p>
+                <h3 className={`text-4xl font-black tracking-tighter ${textColor}`}>{globalMetrics.cpa.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</h3>
+              </div>
+              <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center ${isDark ? 'bg-purple-900/20 text-purple-400' : 'bg-purple-50 text-purple-600'}`}>
+                <Target size={24} />
+              </div>
+            </div>
+            
+          </motion.div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div className="lg:col-span-2 space-y-8">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-xl ${isDark ? 'bg-slate-800 text-blue-400' : 'bg-white text-blue-600'} shadow-sm`}><Activity size={24}/></div>
+                <h2 className={`text-3xl font-black tracking-tighter ${textColor}`}>Portefeuille Actif</h2>
+              </div>
+
+              <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {clients.map((client) => (
+                  <motion.div key={client.id} variants={itemVariants} whileHover={{ y: -8 }}>
+                    <Link href={`/client/${client.id}`} className={`block p-10 rounded-[3rem] ${bgCard} border ${borderColor} shadow-sm hover:shadow-2xl transition-all relative overflow-hidden group`}>
+                      <div className="absolute top-0 left-0 right-0 h-2" style={{ backgroundColor: primaryColor }} />
+                      <div className="flex justify-between items-start mb-12">
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-900'}`}>
+                          {client.name?.substring(0, 2).toUpperCase() || "CL"}
+                        </div>
+                        <ArrowRight className={`${textMuted} group-hover:text-blue-500 group-hover:translate-x-2 transition-all`} />
+                      </div>
+                      <h3 className={`text-3xl font-black tracking-tighter mb-4 ${textColor}`}>{client.name}</h3>
+                    </Link>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+
+            <div className="space-y-10">
+                <div className="flex items-center gap-4">
+                    <Terminal size={24} className="text-blue-500"/>
+                    <h2 className={`text-2xl font-black tracking-tighter ${textColor}`}>System Status</h2>
+                </div>
+                <div className={`p-8 rounded-[3rem] ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border shadow-xl`}>
+                    <div className="flex items-center gap-2 mb-6">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Infrastructure Online</span>
+                    </div>
+                </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  );
+}
+</file>
+
+<file path="app/login/page.tsx">
+"use client";
+
+import { useState, useEffect, Suspense } from "react";
+import { supabase } from "@/lib/supabase";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Mail, Lock, ArrowRight, ArrowLeft, Sparkles, AlertTriangle } from "lucide-react";
+
+function LoginContent() {
+  const searchParams = useSearchParams();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Écoute les changements de l'URL pour basculer automatiquement entre Login et Inscription
+  useEffect(() => {
+    setIsSignUp(searchParams.get("signup") === "true");
+    setErrorMsg(null); // Reset l'erreur au changement de mode
+  }, [searchParams]);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      if (isSignUp) {
+        // FLOW INCRIPTION
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        
+        // Si Supabase est configuré sans confirmation d'email, il connecte direct
+        if (data?.session) {
+          document.cookie = `sb-metricflow-auth=${data.session.access_token}; path=/; max-age=${data.session.expires_in}; SameSite=Lax; Secure`;
+          window.location.href = "/dashboard";
+        } else {
+          alert("Compte créé ! Vérifiez votre boîte mail pour valider votre inscription.");
+          setLoading(false);
+        }
+      } else {
+        // FLOW CONNEXION
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+
+        if (data?.session) {
+          document.cookie = `sb-metricflow-auth=${data.session.access_token}; path=/; max-age=${data.session.expires_in}; SameSite=Lax; Secure`;
+        }
+        window.location.href = "/dashboard";
+      }
+    } catch (err: any) {
+      // TRADUCTION DES ERREURS SUPABASE EN FRANÇAIS PRO
+      if (err.message === "Invalid login credentials") {
+        setErrorMsg("Identifiants invalides. Vérifiez votre e-mail ou votre mot de passe.");
+      } else if (err.message === "User already registered") {
+        setErrorMsg("Cet e-mail est déjà lié à une infrastructure MetricFlow.");
+      } else if (err.message === "Password should be at least 6 characters") {
+        setErrorMsg("Le mot de passe doit contenir au moins 6 caractères.");
+      } else {
+        setErrorMsg(err.message);
+      }
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-white font-sans antialiased relative overflow-hidden flex flex-col justify-center items-center px-6">
+      
+      {/* BACKGROUND GLOWS CONFINÉS */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-blue-600/10 rounded-full blur-[130px]" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-600/5 rounded-full blur-[120px]" />
+      </div>
+
+      {/* BOUTON RETOUR */}
+      <div className="absolute top-8 left-8 z-10">
+        <Link href="/" className="inline-flex items-center gap-2 text-slate-500 hover:text-white font-black transition-colors uppercase text-xs tracking-widest">
+          <ArrowLeft size={14} /> Retour à l'architecture
+        </Link>
+      </div>
+
+      {/* CARDE D'ACCÈS DIRECTIONNEL DYNAMIQUE */}
+      <motion.div 
+        layout
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md bg-slate-900/40 border border-white/5 p-8 md:p-12 rounded-[3rem] backdrop-blur-xl shadow-2xl space-y-8 relative z-10"
+      >
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(59,130,246,0.3)]">
+            <Sparkles size={20} className="text-white" />
+          </div>
+          <h1 className="text-3xl font-black tracking-tighter uppercase transition-all">
+            {isSignUp ? "Créer l'agence" : "MetricFlow"}
+          </h1>
+          <p className="text-slate-400 text-xs font-medium">
+            {isSignUp 
+              ? "Initialisez vos accès pour déployer votre instance Core." 
+              : "Connectez-vous pour piloter votre univers directionnel."}
+          </p>
+        </div>
+
+        {/* LE BANDEAU D'ERREUR PREMIUM (REMPLACE L'ALERT NAVIGATEUR) */}
+        <AnimatePresence>
+          {errorMsg && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-start gap-3 text-red-400 text-xs font-semibold leading-relaxed"
+            >
+              <AlertTriangle size={18} className="shrink-0 text-red-500" />
+              <div>{errorMsg}</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <form onSubmit={handleAuth} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">
+              Adresse E-mail
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
+              <input 
+                type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="ton@email.com" 
+                className="w-full bg-slate-950 border border-white/10 rounded-xl pl-12 pr-4 py-4 text-sm font-medium focus:outline-none focus:border-blue-500/50 transition-colors placeholder:text-slate-800 text-white"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">
+              Mot de passe
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
+              <input 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••" 
+                className="w-full bg-slate-950 border border-white/10 rounded-xl pl-12 pr-4 py-4 text-sm font-medium focus:outline-none focus:border-blue-500/50 transition-colors placeholder:text-slate-800 text-white"
+                required
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit"
+            disabled={loading}
+            className="w-full bg-white text-slate-950 font-black uppercase text-xs tracking-widest py-4 rounded-xl hover:bg-slate-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+          >
+            {loading ? "Traitement en cours..." : isSignUp ? "Déployer mon infrastructure" : "Entrer dans l'univers"} 
+            <ArrowRight size={14} />
+          </button>
+        </form>
+
+        <div className="text-center pt-2">
+          {isSignUp ? (
+            <Link href="/login" className="text-[11px] font-bold text-slate-500 hover:text-blue-400 transition-colors uppercase tracking-wider">
+              Vous avez déjà un compte ? Connectez-vous
+            </Link>
+          ) : (
+            <Link href="/login?signup=true" className="text-[11px] font-bold text-slate-500 hover:text-blue-400 transition-colors uppercase tracking-wider">
+              Pas encore de compte ? Créer votre agence
+            </Link>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// WRAPPER DE SÉCURITÉ POUR NEXT.JS
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-500 font-mono text-xs">CHARGEMENT CORE...</div>}>
+      <LoginContent />
+    </Suspense>
+  );
+}
+</file>
+
+<file path="app/portal/[id]/page.tsx">
+"use client";
+
+import React, { useEffect, useState, use } from "react";
+import { supabase } from "@/lib/supabase";
+import { BarChart3, Calendar, TrendingUp, Layers, Cpu, ShieldCheck, Target } from "lucide-react";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import type { Client, Agency, ClientPerformance } from "@/lib/types";
+
+export default function ClientPortalPage({ params }: { params: React.Usable<{ id: string }> }) {
+  const { id } = use(params);
+  
+  // Utilisation de nos nouveaux Types Stricts au lieu de "any"
+  const [client, setClient] = useState<Client | null>(null);
+  const [agency, setAgency] = useState<Agency | null>(null);
+  const [performances, setPerformances] = useState<ClientPerformance[]>([]);
+  
+  // Métriques globales du client
+  const [metrics, setMetrics] = useState({ spend: 0, conversions: 0, cpa: 0 });
+  
+  const [loading, setLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    async function fetchPortalData() {
+      const { data: clientData } = await supabase.from("agency_clients").select("*").eq("id", id).single();
+      if (!clientData) { setLoading(false); return; }
+      setClient(clientData);
+      
+      const { data: agencyData } = await supabase.from("agencies").select("*").eq("id", clientData.agency_id).single();
+      if (agencyData) setAgency(agencyData);
+
+      const { data: perfData } = await supabase.from("client_performances").select("*").eq("client_id", id).order("month", { ascending: false });
+      
+      if (perfData) {
+        setPerformances(perfData);
+        
+        // Calcul des totaux pour le client
+        const totalSpend = perfData.reduce((sum, row) => sum + (Number(row.spend) || 0), 0);
+        const totalConv = perfData.reduce((sum, row) => sum + (Number(row.conversions) || 0), 0);
+        const avgCpa = totalConv > 0 ? (totalSpend / totalConv) : 0;
+        
+        setMetrics({ spend: totalSpend, conversions: totalConv, cpa: avgCpa });
+      }
+      setLoading(false);
+    }
+    fetchPortalData();
+  }, [id]);
+
+  if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center font-black text-white italic animate-pulse tracking-widest">AUTHENTICATION...</div>;
+  if (!client || !agency) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white font-black uppercase">Lien Invalide ou Accès Restreint</div>;
+
+  const isDark = agency.theme_mode === "dark";
+  const bgMain = isDark ? "bg-slate-950" : "bg-[#F1F5F9]";
+  const bgCard = isDark ? "bg-slate-900/50 border-slate-800" : "bg-white border-slate-100";
+  const textColor = isDark ? "text-white" : "text-slate-900";
+  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
+  const borderColor = isDark ? "border-slate-800" : "border-slate-100";
+
+  // Aggrégation pour le graphique
+  const groupedPerformances = Object.values(
+    performances.reduce((acc, perf) => {
+      if (!acc[perf.month]) {
+        acc[perf.month] = { month: perf.month, totalSpend: 0, platformsUsed: [] };
+      }
+      acc[perf.month].totalSpend += perf.spend;
+      if (!acc[perf.month].platformsUsed.includes(perf.platform)) {
+        acc[perf.month].platformsUsed.push(perf.platform);
+      }
+      return acc;
+    }, {} as Record<string, { month: string, totalSpend: number, platformsUsed: string[] }>)
+  ).sort((a, b) => b.month.localeCompare(a.month));
+
+  const chartData = [...groupedPerformances].map((p) => ({
+    month: p.month,
+    Budget: p.totalSpend
+  }));
+
+  return (
+    <div className={`min-h-screen ${bgMain} ${textColor} p-6 md:p-12 font-sans antialiased transition-colors duration-700`}>
+      <div className="max-w-[1400px] mx-auto space-y-10">
+        
+        <header className={`p-8 rounded-[3rem] ${bgCard} border ${borderColor} backdrop-blur-xl flex flex-col md:flex-row justify-between items-center gap-8 shadow-2xl`}>
+            <div className="flex items-center gap-6">
+                <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center font-black text-3xl border ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`}>
+                    {client.name?.substring(0,2).toUpperCase() || "CL"}
+                </div>
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <ShieldCheck size={14} className="text-emerald-500"/>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Verified Audit by {agency.name}</span>
+                    </div>
+                    <h1 className="text-5xl font-black tracking-tighter">{client.name}</h1>
+                </div>
+            </div>
+            <div className="flex gap-4">
+                <div className="text-center px-8">
+                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">Status</p>
+                    <p className="font-black text-emerald-500 flex items-center gap-2"><span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"/> Live Performance</p>
+                </div>
+            </div>
+        </header>
+
+        {/* NOUVEAU BLOC : MÉTRIQUES GLOBALES DU CLIENT */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className={`p-8 rounded-[3rem] ${bgCard} border ${borderColor} shadow-sm flex items-center justify-between`}>
+            <div>
+              <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${textMuted}`}>Budget Total Investi</p>
+              <h3 className={`text-4xl font-black tracking-tighter ${textColor}`}>{metrics.spend.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</h3>
+            </div>
+            <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center ${isDark ? 'bg-blue-900/20 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+              <TrendingUp size={24} />
+            </div>
+          </div>
+          
+          <div className={`p-8 rounded-[3rem] ${bgCard} border ${borderColor} shadow-sm flex items-center justify-between`}>
+            <div>
+              <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${textMuted}`}>Conversions Générées</p>
+              <h3 className={`text-4xl font-black tracking-tighter ${textColor}`}>{metrics.conversions.toLocaleString('fr-FR')}</h3>
+            </div>
+            <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center ${isDark ? 'bg-emerald-900/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+              <Layers size={24} />
+            </div>
+          </div>
+
+          <div className={`p-8 rounded-[3rem] ${bgCard} border ${borderColor} shadow-sm flex items-center justify-between`}>
+            <div>
+              <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${textMuted}`}>CPA Moyen</p>
+              <h3 className={`text-4xl font-black tracking-tighter ${textColor}`}>{metrics.cpa.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</h3>
+            </div>
+            <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center ${isDark ? 'bg-purple-900/20 text-purple-400' : 'bg-purple-50 text-purple-600'}`}>
+              <Target size={24} />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div className={`lg:col-span-2 min-w-0 p-10 rounded-[4rem] ${bgCard} border ${borderColor} shadow-inner`}>
+                <h2 className="text-2xl font-black mb-10 flex items-center gap-3 uppercase tracking-tighter">
+                    <TrendingUp size={24} className="text-blue-500"/> Analytics Pipeline
+                </h2>
+                <div className="h-[400px]">
+                    {isMounted ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={chartData}>
+                              <defs>
+                                  <linearGradient id="colorS" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="5%" stopColor={agency.primary_color} stopOpacity={0.4}/>
+                                      <stop offset="95%" stopColor={agency.primary_color} stopOpacity={0}/>
+                                  </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#1e293b" : "#e2e8f0"} vertical={false}/>
+                              <XAxis dataKey="month" stroke="#64748b" fontSize={11} axisLine={false} tickLine={false}/>
+                              <YAxis stroke="#64748b" fontSize={11} axisLine={false} tickLine={false}/>
+                              <Tooltip contentStyle={{backgroundColor: isDark ? '#0f172a' : '#fff', border: 'none', borderRadius: '20px', color: isDark ? '#fff' : '#000'}}/>
+                              <Area type="monotone" dataKey="Budget" stroke={agency.primary_color} strokeWidth={5} fill="url(#colorS)" />
+                          </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="w-full h-full bg-slate-500/10 animate-pulse rounded-3xl" />
+                    )}
+                </div>
+            </div>
+
+            <div className="space-y-8">
+                <div className={`p-10 rounded-[3rem] ${isDark ? 'bg-blue-600' : 'bg-slate-900'} text-white shadow-2xl`}>
+                    <Cpu size={32} className="mb-6 opacity-50"/>
+                    <h3 className="text-3xl font-black tracking-tight mb-2">Data Engine</h3>
+                    <p className="text-sm opacity-70 leading-relaxed">Les flux publicitaires sont synchronisés en continu pour assurer une transparence totale sur vos investissements.</p>
+                </div>
+
+                <div className="space-y-4">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Historique des Investissements</h4>
+                    {/* On affiche les perfs par ordre chronologique décroissant */}
+                    {groupedPerformances.reverse().slice(0,4).map((p) => (
+                        <div key={p.month} className={`p-6 rounded-[2rem] ${bgCard} border ${borderColor} flex justify-between items-center`}>
+                            <div>
+                              <p className="font-black text-lg">{p.month}</p>
+                              <div className="flex gap-1 mt-1">
+                                {p.platformsUsed.map((plat) => (
+                                  <span key={plat} className="text-[7px] font-black bg-slate-500/10 px-1.5 py-0.5 rounded text-slate-400 uppercase">{plat}</span>
+                                ))}
+                              </div>
+                            </div>
+                            <p className="font-black text-xl text-blue-500">{p.totalSpend.toFixed(2)} €</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="app/globals.css">
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  color-scheme: dark; /* Force le navigateur à rendre ses barres de défilement natives en mode sombre */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+html {
+  height: 100%;
+  overflow-y: auto;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  overflow-y: visible !important;
+}
+</file>
+
+<file path="app/layout.tsx">
+import { ThemeProvider } from "@/app/theme-context";
+import "./globals.css"; 
+
+export const metadata = {
+  title: "MetricFlow Core",
+  description: "Système directionnel d'acquisition global",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="fr">
+      <body>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  );
+}
+</file>
+
+<file path="app/page.tsx">
+"use client";
+
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { 
+  ArrowRight, ShieldCheck, Sparkles, BarChart3, 
+  Cpu, Layers, CheckCircle2, Globe, Infinity, Zap 
+} from "lucide-react";
+
+export default function LandingPage() {
+  return (
+    <div className="min-h-screen bg-slate-950 font-sans antialiased text-white selection:bg-blue-600 relative overflow-x-hidden">
+      
+      {/* BACKGROUND GLOWS CONFINÉS */}
+<div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+  <div className="absolute top-0 right-0 w-[1000px] h-[1000px] bg-blue-600/10 rounded-full blur-[150px] -translate-y-1/2 translate-x-1/3" />
+  <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-purple-600/10 rounded-full blur-[130px] translate-y-1/3 -translate-x-1/4" />
+</div>
+
+      {/* NAVBAR */}
+      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 backdrop-blur-md bg-slate-950/40 border-b border-white/5">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse" />
+            <span className="font-black tracking-tighter uppercase text-xl">MetricFlow</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link href="/login/" className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors px-4 py-2">
+              Connexion
+            </Link>
+            <Link href="/login?signup=true" className="bg-white text-slate-950 text-xs font-black uppercase tracking-widest px-6 py-3 rounded-xl hover:bg-slate-200 transition-all active:scale-95">
+              Déployer Core
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* HERO SECTION */}
+      <section className="pt-44 pb-24 px-6 relative z-10">
+        <div className="max-w-5xl mx-auto text-center space-y-8">
+          <motion.span 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-block py-1.5 px-4 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] font-black uppercase tracking-widest"
+          >
+            L'infrastructure Multi-Tenant des Agences de Performance
+          </motion.span>
+          
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-6xl md:text-8xl font-black tracking-tighter leading-none"
+          >
+            Pilotez vos clients. <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500">
+              Automatisez l'IA.
+            </span>
+          </motion.h1>
+
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-slate-400 text-lg md:text-xl max-w-3xl mx-auto font-medium leading-relaxed"
+          >
+            Connectez vos flux Meta, Google et TikTok Ads. Générez des audits critiques automatisés par intelligence artificielle et offrez un portail marque blanche premium à vos clients.
+          </motion.p>
+
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="pt-6 flex flex-col sm:flex-row justify-center items-center gap-4"
+          >
+            <Link href="/login?signup=true" className="w-full sm:w-auto bg-blue-600 text-white px-10 py-5 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-blue-700 transition-all shadow-[0_0_40px_rgba(59,130,246,0.3)] text-sm tracking-widest uppercase active:scale-95">
+              Démarrer l'essai gratuit <ArrowRight size={16} />
+            </Link>
+            <a href="#features" className="w-full sm:w-auto border border-white/10 hover:border-white/20 bg-white/5 px-10 py-5 rounded-2xl font-black text-sm tracking-widest uppercase transition-colors text-center">
+              Explorer l'architecture
+            </a>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* CORE FEATURES GRID */}
+      <section id="features" className="py-24 px-6 border-t border-white/5 bg-slate-900/20 relative z-10">
+        <div className="max-w-7xl mx-auto space-y-16">
+          <div className="text-center space-y-4">
+            <h2 className="text-4xl font-black tracking-tight">Une infrastructure taillée pour la croissance</h2>
+            <p className="text-slate-400 font-medium max-w-xl mx-auto">Tout ce dont votre agence a besoin pour éliminer les rapports manuels obsolètes.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            {/* CARDE 1 */}
+            <div className="bg-slate-900/40 border border-white/5 p-10 rounded-[2.5rem] space-y-6 hover:border-blue-500/30 transition-colors group">
+              <div className="p-4 bg-blue-500/10 text-blue-400 rounded-2xl inline-block group-hover:bg-blue-500 group-hover:text-white transition-all">
+                <Layers size={24} />
+              </div>
+              <h3 className="text-2xl font-black tracking-tight">Hub Multi-Tenant</h3>
+              <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                Chaque utilisateur dispose d'une isolation totale de ses bases de données clients. Aucune fuite possible, sécurité d'infrastructure RLS absolue.
+              </p>
+            </div>
+
+            {/* CARDE 2 */}
+            <div className="bg-slate-900/40 border border-white/5 p-10 rounded-[2.5rem] space-y-6 hover:border-indigo-500/30 transition-colors group">
+              <div className="p-4 bg-indigo-500/10 text-indigo-400 rounded-2xl inline-block group-hover:bg-indigo-50 group-hover:text-white transition-all">
+                <Cpu size={24} />
+              </div>
+              <h3 className="text-2xl font-black tracking-tight">Moteur d'Audit IA</h3>
+              <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                Analyse cognitive en temps réel de vos KPIs publicitaires. Repérez instantanément les anomalies de CPA et recalibrez vos budgets grâce à l'IA.
+              </p>
+            </div>
+
+            {/* CARDE 3 */}
+            <div className="bg-slate-900/40 border border-white/5 p-10 rounded-[2.5rem] space-y-6 hover:border-purple-500/30 transition-colors group">
+              <div className="p-4 bg-purple-500/10 text-purple-400 rounded-2xl inline-block group-hover:bg-purple-50 group-hover:text-white transition-all">
+                <Globe size={24} />
+              </div>
+              <h3 className="text-2xl font-black tracking-tight">Full Marque Blanche</h3>
+              <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                Personnalisez le nom, le thème visuel (Midnight ou Studio) et générez des rapports PDF vectoriels exportables aux couleurs de votre agence.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* TRACKING STATUS BANNER */}
+      <section className="py-20 px-6 border-t border-white/5">
+        <div className="max-w-5xl mx-auto bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-[3rem] p-10 md:p-14 flex flex-col md:flex-row justify-between items-center gap-10">
+          <div className="space-y-4 text-center md:text-left">
+            <div className="flex justify-center md:justify-start items-center gap-2 text-emerald-400 font-mono text-[11px] uppercase tracking-widest font-black">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" /> Synchronisation API temps réel
+            </div>
+            <h3 className="text-3xl font-black tracking-tight">Prêt à automatiser vos flux de données ?</h3>
+            <p className="text-slate-400 text-sm font-medium max-w-xl">
+              Déployez votre instance de MetricFlow Core et commencez à centraliser Facebook Ads, Instagram Ads et Google Ads dès aujourd'hui.
+            </p>
+          </div>
+          <Link href="/login?signup=true" className="w-full md:w-auto bg-white text-slate-950 px-10 py-5 rounded-xl font-black uppercase text-xs tracking-widest transition-transform active:scale-95 text-center shrink-0">
+            Initialiser mon instance
+          </Link>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="py-12 border-t border-white/5 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">
+        &copy; 2026 MetricFlow Core Infrastructure. Tous droits réservés.
+      </footer>
+
+    </div>
+  );
+}
+</file>
+
+<file path="app/theme-context.tsx">
+"use client";
+
+import { createContext, useContext, useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+
+const ThemeContext = createContext<any>(null);
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [themeMode, setThemeMode] = useState("light");
+  const [primaryColor, setPrimaryColor] = useState("#3b82f6");
+  const [agencyName, setAgencyName] = useState("");
+  const [agency, setAgency] = useState<any>(null);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+
+  const refreshSettings = async () => {
+    setLoadingSettings(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setAgency(null);
+      setAgencyName("");
+      setLoadingSettings(false);
+      return;
+    }
+
+    const { data: agencyData } = await supabase
+      .from("agencies")
+      .select("*")
+      .eq("owner_id", user.id)
+      .maybeSingle();
+
+    if (agencyData) {
+      setAgency(agencyData);
+      setAgencyName(agencyData.name);
+      setPrimaryColor(agencyData.primary_color);
+      setThemeMode(agencyData.theme_mode || "light");
+      localStorage.setItem("metricflow-theme", agencyData.theme_mode || "light");
+    } else {
+      setAgency(null);
+      setAgencyName("");
+    }
+    setLoadingSettings(false);
+  };
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("metricflow-theme");
+    if (savedTheme) setThemeMode(savedTheme);
+
+    // NETTOYAGE ET SYNCHRONISATION AUTOMATIQUE DES SESSIONS MULTI-COMPTES
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+        await refreshSettings();
+      } else if (event === "SIGNED_OUT") {
+        // Clear absolu de la mémoire React pour éviter les fuites de données
+        setAgency(null);
+        setAgencyName("");
+        setPrimaryColor("#3b82f6");
+        setThemeMode("light");
+        localStorage.removeItem("metricflow-theme");
+        setLoadingSettings(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  return (
+    <ThemeContext.Provider value={{ themeMode, setThemeMode, primaryColor, setPrimaryColor, agencyName, setAgencyName, agency, loadingSettings, refreshSettings }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+export const useTheme = () => useContext(ThemeContext);
+</file>
+
+<file path="components/AddClientForm.tsx">
+
+</file>
+
+<file path="components/AddPerformanceForm.tsx">
+
+</file>
+
+<file path="components/ClientCard.tsx">
+
+</file>
+
+<file path="lib/supabase.ts">
+import { createClient } from '@supabase/supabase-js';
+
+// 1. On récupère les clés du fichier .env.local
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+// 2. On crée le "tuyau" et on l'appelle 'supabase' (et pas supabaseUrl !)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+</file>
+
+<file path="lib/types.ts">
+export interface Agency {
+  id: string;
+  name: string;
+  primary_color: string;
+  theme_mode: string;
+  owner_id: string;
+  created_at?: string;
+}
+
+export interface Client {
+  id: string;
+  agency_id: string;
+  name: string;
+  platform: string[];
+  target_cpa?: number;
+  meta_access_token?: string;
+  meta_ad_account_id?: string; // <--- LE NOUVEAU CHAMP OBLIGATOIRE
+  created_at?: string;
+}
+
+export interface ClientPerformance {
+  id: string;
+  client_id: string;
+  month: string;
+  platform: string;
+  spend: number;
+  clicks: number;
+  conversions: number;
+  created_at?: string;
+}
+</file>
+
+<file path="public/file.svg">
+<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
+</file>
+
+<file path="public/globe.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+</file>
+
+<file path="public/next.svg">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
+</file>
+
+<file path="public/vercel.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
+</file>
+
+<file path="public/window.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
+</file>
+
+<file path=".gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+</file>
+
+<file path="AGENTS.md">
+<!-- BEGIN:nextjs-agent-rules -->
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+<!-- END:nextjs-agent-rules -->
+</file>
+
+<file path="CLAUDE.md">
+@AGENTS.md
+</file>
+
+<file path="eslint.config.mjs">
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
+]);
+
+export default eslintConfig;
+</file>
+
+<file path="next.config.ts">
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
+</file>
+
+<file path="package.json">
+{
+  "name": "metricflow",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "pack:watch": "nodemon -L --watch app --watch components --watch lib --ext ts,tsx,css --exec \"npx repomix --style xml\""
+  },
+  "dependencies": {
+    "@google/genai": "^2.4.0",
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/supabase-js": "^2.105.4",
+    "framer-motion": "^12.38.0",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^1.14.0",
+    "next": "16.2.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "recharts": "^3.8.1",
+    "stripe": "^22.2.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "nodemon": "^3.1.14",
+    "repomix": "^1.14.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+</file>
+
+<file path="postcss.config.mjs">
+const config = {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  },
+};
+
+export default config;
+</file>
+
+<file path="proxy.ts">
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export default function proxy(req: NextRequest) {
+  const hasSession = req.cookies.has('sb-metricflow-auth');
+  const path = req.nextUrl.pathname;
+
+  // RÈGLE 1 : Inconnu qui essaie de rentrer dans le SaaS = Dehors (Login)
+  if (!hasSession && (path.startsWith('/dashboard') || path.startsWith('/client'))) {
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
+
+  // RÈGLE 2 : Déjà connecté qui essaie de se RE-connecter = Au travail (Dashboard)
+  if (hasSession && path.startsWith('/login')) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+}
+</file>
+
+<file path="README.md">
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
+</file>
+
+</files>
