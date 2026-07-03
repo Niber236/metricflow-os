@@ -13,15 +13,16 @@ import {
   TrendingUp, Target, Layers
 } from "lucide-react";
 
+
 const containerVariants = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.08 } }
-};
+} as const;
 
 const itemVariants = {
   hidden: { opacity: 0, y: 30 },
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 80 } }
-};
+} as const;
 
 export default function DashboardPage() {
   const { 

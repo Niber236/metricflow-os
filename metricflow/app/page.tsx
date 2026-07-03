@@ -74,8 +74,8 @@ export default function LandingPage() {
             className="pt-6 flex flex-col sm:flex-row justify-center items-center gap-4"
           >
             <Link href="/login?signup=true" className="w-full sm:w-auto bg-blue-600 text-white px-10 py-5 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-blue-700 transition-all shadow-[0_0_40px_rgba(59,130,246,0.3)] text-sm tracking-widest uppercase active:scale-95">
-              Démarrer l'essai gratuit <ArrowRight size={16} />
-            </Link>
+  Déployer l'instance <ArrowRight size={16} />
+</Link>
             <a href="#features" className="w-full sm:w-auto border border-white/10 hover:border-white/20 bg-white/5 px-10 py-5 rounded-2xl font-black text-sm tracking-widest uppercase transition-colors text-center">
               Explorer l'architecture
             </a>
