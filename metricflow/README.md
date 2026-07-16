@@ -142,4 +142,4 @@ Les tests s'effectuent manuellement sur l'environnement de développement :
 
 ## Les Créateurs
 - **Bernis** - Lead Full-Stack & DevOps (bernis@email.com | [LinkedIn](#))
-- **Janice** - Front-End Dev & UX/UI (janice@email.com | [LinkedIn](#))
+- 
