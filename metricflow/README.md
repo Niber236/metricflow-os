@@ -15,13 +15,13 @@ MetricFlow OS est une infrastructure SaaS Multi-Tenant développée pour les age
 
 ```mermaid
 flowchart TD
-    subgraph Frontend ["Front-End (Navigateur Client)"]
+    subgraph Frontend ["Front-End"]
         UI["Interface React / Next.js"]
         Viz["Recharts & Framer Motion"]
     end
 
-    subgraph Server ["Serveur Next.js (App Router)"]
-        Middleware{"proxy.ts (Middleware)"}
+    subgraph Server ["Serveur Next.js"]
+        Middleware{"proxy.ts Middleware"}
         API_Meta["Route API /api/auth/meta/callback"]
         API_AI["Route API /api/report"]
     end
@@ -50,20 +50,17 @@ flowchart TD
     DB -->|Données| UI
 
     %% Flux API AI
-    UI -->|Stats Client| API_AI
+    UI -->|Stats| API_AI
     API_AI <-->|"Prompt Engineering"| Gemini
     API_AI -->|Rapport| UI
 
     %% Flux API Meta
     UI -->|OAuth| Meta
     Meta -->|Code Auth| API_Meta
-    API_Meta <-->|"Échange Token (Long Lived)"| Meta
+    API_Meta <-->|"Échange Token"| Meta
     API_Meta -->|Update Token| DB
 
-    ## Base de Données
-
-```mermaid
-erDiagram
+    erDiagram
     USERS ||--o{ AGENCIES : "possède"
     AGENCIES ||--o{ AGENCY_CLIENTS : "gère"
     AGENCY_CLIENTS ||--o{ CLIENT_PERFORMANCES : "analyse"
