@@ -13,12 +13,7 @@ MetricFlow OS est une infrastructure SaaS Multi-Tenant développée pour les age
 
 ## Architecture
 
-flowchart TD
-    subgraph Frontend ["Front-End"]
-        UI["Interface React / Next.js"]
-        Viz["Recharts & Framer Motion"]
-    end
-
+graph TD
     subgraph Server ["Serveur Next.js"]
         Middleware{"proxy.ts Middleware"}
         API_Meta["Route API /api/auth/meta/callback"]
