@@ -141,4 +141,4 @@ Les tests s'effectuent manuellement sur l'environnement de développement :
 - Affinage du typage de certains retours d'API dynamiques dans Recharts.
 
 ## Les Créateurs
-- **Bernis** - Lead Full-Stack & DevOps (bernis@email.com | [LinkedIn](#))
+- **Bernis** - Lead Full-Stack &  DevOps (bernis@email.com | [LinkedIn](#))
