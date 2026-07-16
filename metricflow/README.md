@@ -61,6 +61,7 @@ flowchart TD
     API_Meta -->|Update Token RLS| DB
 ```
 
+
 > Notre architecture sépare strictement les accès. Les appels API critiques et les échanges de jetons OAuth se font côté serveur via les Route Handlers de Next.js pour éviter d'exposer les variables d'environnement.
 
 ## Base de Données
