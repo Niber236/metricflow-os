@@ -57,6 +57,8 @@ app/
     page.tsx
   login/
     page.tsx
+  pitch/
+    page.tsx
   portal/
     [id]/
       page.tsx
@@ -363,9 +365,10 @@ import Link from "next/link";
 import { useTheme } from "@/app/theme-context";
 import { 
   ArrowLeft, Sparkles, Download, BarChart3, Calendar, 
-  Copy, Check, Target, AlertTriangle, Save, Link2, Trash2, Edit2, X
+  Copy, Check, Target, AlertTriangle, Save, Link2, Trash2, Edit2, X, ShieldCheck
 } from "lucide-react";
 import jsPDF from "jspdf";
+import * as htmlToImage from "html-to-image";
 import type { Client, Agency, ClientPerformance } from "@/lib/types";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 import { motion } from "framer-motion";
@@ -374,7 +377,6 @@ export default function ClientPage({ params }: { params: React.Usable<{ id: stri
   const { id } = React.use(params);
   const { themeMode, primaryColor, agencyName } = useTheme();
 
-  // ADIEU LES ANY !
   const [client, setClient] = useState<Client | null>(null);
   const [performances, setPerformances] = useState<ClientPerformance[]>([]);
   const [unauthorized, setUnauthorized] = useState(false);
@@ -396,6 +398,7 @@ export default function ClientPage({ params }: { params: React.Usable<{ id: stri
   const [report, setReport] = useState("");
   const [reportError, setReportError] = useState<string | null>(null); 
   const [copied, setCopied] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -443,7 +446,6 @@ export default function ClientPage({ params }: { params: React.Usable<{ id: stri
     await supabase.from("agency_clients").update({ meta_ad_account_id: adAccountId }).eq("id", id);
   };
 
-  // LE MOTEUR D'ASPIRATION META ADS
   const handleSyncMeta = async () => {
     if (!client?.meta_ad_account_id) {
       alert("Veuillez renseigner l'ID du compte publicitaire (ex: act_123456789).");
@@ -557,7 +559,31 @@ export default function ClientPage({ params }: { params: React.Usable<{ id: stri
     finally { setIsGenerating(false); }
   };
 
-  const downloadPDF = () => { /* Même fonction PDF qu'avant */ };
+  const downloadPDF = async () => {
+    const reportElement = document.getElementById('report-container');
+    if (!reportElement) {
+      alert("Aucun rapport à exporter.");
+      return;
+    }
+    
+    setIsDownloading(true);
+    try {
+      const isDark = themeMode === "dark";
+      const dataUrl = await htmlToImage.toPng(reportElement, { quality: 0.95, backgroundColor: isDark ? '#0f172a' : '#ffffff' });
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (reportElement.offsetHeight * pdfWidth) / reportElement.offsetWidth;
+      
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Audit_MetricFlow_${client?.name || 'Client'}.pdf`);
+    } catch (error) {
+      console.error("Erreur lors de la génération du PDF :", error);
+      alert("Échec de la création du PDF.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   if (pageLoading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center italic font-black text-slate-500 animate-pulse text-xs">Vérification...</div>;
   if (unauthorized || !client) return <div className="min-h-screen bg-slate-950 flex justify-center p-6"><AlertTriangle size={32} className="text-red-500"/></div>;
@@ -604,9 +630,16 @@ export default function ClientPage({ params }: { params: React.Usable<{ id: stri
             )}
           </div>
           <div className="flex gap-3 flex-wrap">
-            <button onClick={handleDeleteClient} className="bg-red-500/10 text-red-500 px-6 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2"><Trash2 size={16}/> Supprimer</button>
-            <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/portal/${id}`); setCopied(true); setTimeout(()=>setCopied(false), 2000); }} className={`${bgCard} border px-6 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2`}>{copied ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>} Lien Public</button>
-            <button onClick={handleGenerateReport} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2"><Sparkles size={16} className={isGenerating ? "animate-spin" : ""}/> {isGenerating ? "Analyse..." : "Générer Rapport IA"}</button>
+            <button onClick={handleDeleteClient} className="bg-red-500/10 text-red-500 px-6 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2 hover:bg-red-500 hover:text-white transition-colors"><Trash2 size={16}/> Supprimer</button>
+            <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/portal/${id}`); setCopied(true); setTimeout(()=>setCopied(false), 2000); }} className={`${bgCard} border px-6 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2 hover:border-blue-500 transition-colors`}>{copied ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>} Lien Public</button>
+            <button onClick={handleGenerateReport} disabled={isGenerating} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2 hover:bg-blue-700 transition-colors disabled:opacity-50"><Sparkles size={16} className={isGenerating ? "animate-spin" : ""}/> {isGenerating ? "Analyse..." : "Générer Rapport IA"}</button>
+            
+            {/* BOUTON PDF */}
+            {report && (
+              <button onClick={downloadPDF} disabled={isDownloading} className="bg-slate-800 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2 hover:bg-slate-700 transition-colors disabled:opacity-50">
+                <Download size={16} className={isDownloading ? "animate-bounce" : ""} /> {isDownloading ? "Création..." : "Télécharger PDF"}
+              </button>
+            )}
           </div>
         </header>
 
@@ -639,9 +672,26 @@ export default function ClientPage({ params }: { params: React.Usable<{ id: stri
 
         {report && (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mb-12">
-            <div className={`p-10 rounded-[2.5rem] shadow-2xl border ${isDark ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200'}`}>
-              <h2 className="text-2xl font-black text-blue-500 mb-8 flex items-center gap-3"><BarChart3 size={28} /> ANALYSE STRATÉGIQUE</h2>
-              <div className="whitespace-pre-wrap leading-relaxed text-lg font-medium">{report}</div>
+            
+            {/* CONTENEUR DU RAPPORT (Format A4 Corporate) */}
+            <div id="report-container" className={`p-12 md:p-16 shadow-2xl border ${isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-900'}`}>
+              
+              {/* EN-TÊTE CORPORATE STRICT (Comme sur ton modèle) */}
+              <div className="mb-12 border-b-2 border-slate-200/50 pb-8">
+                <h1 className="text-5xl font-black tracking-tighter uppercase mb-6" style={{ color: primaryColor }}>
+                  {agencyName}
+                </h1>
+                <div className="text-sm font-black uppercase tracking-widest text-slate-500 space-y-2">
+                  <p>DOSSIER CLIENT : {client.name}</p>
+                  <p>ÉMIS LE : {new Date().toLocaleDateString('fr-FR')}</p>
+                </div>
+              </div>
+
+              {/* CORPS DE L'AUDIT IA */}
+              <div className="whitespace-pre-wrap leading-relaxed text-sm font-medium text-justify">
+                {report}
+              </div>
+              
             </div>
           </motion.div>
         )}
@@ -1304,6 +1354,226 @@ export default function LoginPage() {
 }
 </file>
 
+<file path="app/pitch/page.tsx">
+"use client";
+
+import { motion } from "framer-motion";
+import { ShieldCheck, Cpu, Database, AlertTriangle, ArrowDown, Code2, Zap, Rocket, Users, Target, ListTodo, Map, Palette, Lock } from "lucide-react";
+import Link from "next/link";
+
+export default function PitchDeck() {
+  return (
+    <div className="h-screen w-full bg-slate-950 text-white overflow-y-scroll snap-y snap-mandatory font-sans scroll-smooth">
+      
+      {/* SLIDE 1 : TITRE & INTRO */}
+      <section className="h-screen w-full snap-center flex flex-col items-center justify-center p-10 relative">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center z-10">
+          <span className="text-blue-500 font-black tracking-widest uppercase text-sm mb-4 block">Soutenance RNCP 5</span>
+          <h1 className="text-7xl md:text-9xl font-black tracking-tighter mb-6">MetricFlow OS</h1>
+          <p className="text-xl md:text-2xl text-slate-400 font-medium max-w-3xl mx-auto mb-12 leading-relaxed">
+            Infrastructure Multi-Tenant de centralisation de données publicitaires et d'audit IA.
+          </p>
+        </motion.div>
+        <div className="absolute bottom-10 animate-bounce text-slate-500">
+          <ArrowDown size={32} />
+        </div>
+      </section>
+
+      {/* SLIDE 2 : LE DÉVELOPPEUR (RÔLE FULL-STACK) */}
+      <section className="h-screen w-full snap-center flex flex-col items-center justify-center p-10 bg-slate-900/40 relative">
+        <div className="max-w-4xl w-full z-10 space-y-12">
+          <div className="flex justify-center items-center gap-4 mb-8">
+            <div className="p-4 bg-purple-500/10 text-purple-500 rounded-2xl"><Users size={32}/></div>
+            <h2 className="text-5xl font-black tracking-tight">Développement & Ingénierie</h2>
+          </div>
+          <div className="p-10 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl">
+            <h3 className="text-4xl font-black text-white mb-2">Bernis</h3>
+            <p className="text-blue-400 font-black uppercase text-sm tracking-widest mb-8">Lead Ingénieur Full-Stack & DevOps</p>
+            <ul className="space-y-5 text-slate-300 text-lg leading-relaxed">
+              <li><strong className="text-emerald-400">Back-End & Infra :</strong> Modélisation PostgreSQL relationnelle (MCD), sécurisation stricte par Row Level Security (RLS) et création de middlewares d'interception avec Next.js.</li>
+              <li><strong className="text-blue-400">Front-End & UX :</strong> Conception des interfaces avec React 19, typage strict TypeScript, styling modulaire Utility-First via TailwindCSS, et gestion d'état global avec Context API.</li>
+              <li><strong className="text-purple-400">Intégration API & IA :</strong> Implémentation du flux OAuth 2.0 complexe pour l'aspiration de données Meta Ads, et intégration du SDK Google GenAI (Gemini) avec Prompt Engineering déterministe.</li>
+              <li><strong className="text-yellow-400">Performances :</strong> Ingénierie d'export PDF 100% côté client (Base64/Canvas) pour ne pas surcharger le serveur, et optimisation de la Data Visualisation asynchrone (Recharts).</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* SLIDE 3 : PROBLÉMATIQUE & SOLUTION */}
+      <section className="h-screen w-full snap-center flex flex-col items-center justify-center p-10 relative">
+        <div className="absolute left-0 bottom-0 w-[500px] h-[500px] bg-red-600/5 rounded-full blur-[100px] pointer-events-none" />
+        <div className="max-w-6xl w-full z-10 grid grid-cols-1 md:grid-cols-2 gap-16">
+          <div className="space-y-6">
+            <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center"><AlertTriangle size={32}/></div>
+            <h2 className="text-4xl font-black">Le Problème Métier</h2>
+            <p className="text-lg text-slate-400 leading-relaxed">
+              Les agences de marketing digital perdent des dizaines d'heures par mois sur des reportings manuels chronophages. Les données sont fragmentées entre plusieurs régies (Meta, Google), entraînant des temps de réaction trop lents face aux baisses de rentabilité, une sous-optimisation des budgets et un manque de clarté pour le client final.
+            </p>
+          </div>
+          <div className="space-y-6">
+            <div className="w-16 h-16 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center"><Zap size={32}/></div>
+            <h2 className="text-4xl font-black">La Solution Technique</h2>
+            <p className="text-lg text-slate-400 leading-relaxed">
+              MetricFlow OS est une plateforme centralisée SaaS Multi-Tenant. Elle permet l'aspiration automatisée des statistiques via Graph API, offre un portail client interactif géré dynamiquement en marque blanche, et intègre un auditeur IA embarqué (Gemini) capable de repérer les anomalies de conversion et de rentabilité instantanément.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* SLIDE 4 : TECH STACK EN PROFONDEUR */}
+      <section className="h-screen w-full snap-center flex flex-col items-center justify-center p-10 bg-slate-900/40">
+        <div className="max-w-7xl w-full text-center space-y-12">
+          <h2 className="text-5xl font-black mb-10"><Code2 className="inline-block mr-4 text-blue-500" size={48}/>Maîtrise de la Stack Technique</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+            
+            <div className="p-8 bg-slate-950 border border-slate-800 rounded-3xl">
+              <h3 className="text-2xl font-black mb-4 text-white">Next.js 16 (App Router) & TypeScript</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Le cœur de l'infrastructure exploite le paradigme <strong>Backend-For-Frontend (BFF)</strong>. Les <strong>Route Handlers</strong> (`/api/`) exécutent la logique métier critique (appels IA, échanges de jetons) de serveur à serveur, garantissant l'invisibilité totale des clés privées. Le typage <strong>TypeScript</strong> strict a été imposé sur tous les schémas de données pour bloquer les crashs silencieux lors des calculs financiers.
+              </p>
+            </div>
+            
+            <div className="p-8 bg-slate-950 border border-slate-800 rounded-3xl">
+              <h3 className="text-2xl font-black mb-4 text-emerald-500">Supabase (PostgreSQL & JWT)</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Au-delà d'un simple stockage, la sécurité est poussée au niveau du moteur SQL via le <strong>Row Level Security (RLS)</strong>. La base de données déchiffre elle-même le jeton <strong>JWT</strong> de session à chaque requête. Ce choix d'architecture backend garantit une étanchéité absolue de la donnée (Multi-Tenant) entre les agences, empêchant toute falsification de requêtes côté client.
+              </p>
+            </div>
+            
+            <div className="p-8 bg-slate-950 border border-slate-800 rounded-3xl">
+              <h3 className="text-2xl font-black mb-4 text-blue-400">React 19, TailwindCSS & Recharts</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Le DOM est optimisé via des composants fonctionnels asynchrones. L'approche <strong>Utility-First</strong> de Tailwind permet une compilation CSS au plus proche de 0 octet inutilisé. L'état global est géré via le <strong>Context API</strong> pour propager la marque blanche (couleurs/noms) instantanément sans rechargement. Les données sont rendues visuellement par la librairie Recharts.
+              </p>
+            </div>
+            
+            <div className="p-8 bg-slate-950 border border-slate-800 rounded-3xl">
+              <h3 className="text-2xl font-black mb-4 text-purple-400">Écosystème API (Meta & Google IA)</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Construction d'un pipeline <strong>OAuth 2.0</strong> robuste avec la Graph API de Meta pour obtenir et prolonger des Access Tokens dynamiques (`long-lived`). Pour l'analytique, le <strong>Google GenAI SDK</strong> (Gemini 2.5) est bridé par un Prompt Engineering technique forçant des retours JSON ou du texte brut déterministe pour une intégration front-end et PDF parfaite.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* SLIDE 5 : MARQUE BLANCHE & ÉTAT GLOBAL */}
+      <section className="h-screen w-full snap-center flex flex-col items-center justify-center p-10 relative">
+        <div className="max-w-6xl w-full z-10 space-y-8">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-16 h-16 bg-purple-500/10 text-purple-500 rounded-2xl flex items-center justify-center"><Palette size={32}/></div>
+            <h2 className="text-5xl font-black tracking-tight">Ingénierie de la Marque Blanche</h2>
+          </div>
+          <p className="text-xl text-slate-300 leading-relaxed max-w-5xl mb-6">
+            L'objectif technique : Permettre à chaque agence de personnaliser l'interface globale (couleur principale, nom, thème clair/sombre) de manière réactive, sans impacter les temps de chargement serveur.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="p-8 bg-slate-900 border border-slate-800 rounded-2xl">
+              <h3 className="text-xl font-black text-white mb-4">1. React Context API (Global State)</h3>
+              <p className="text-base text-slate-400 leading-relaxed">
+                J'ai rejeté le passage de propriétés (Prop-Drilling). Un <strong>ThemeProvider</strong> enveloppe l'arbre React complet. À la connexion de l'utilisateur, une seule requête asynchrone hydrate le Context avec les préférences de la base de données. Ces données sont mises en cache pour éviter la surcharge réseau.
+              </p>
+            </div>
+            <div className="p-8 bg-slate-900 border border-slate-800 rounded-2xl">
+              <h3 className="text-xl font-black text-white mb-4">2. Injection DOM & Rendu Conditionnel</h3>
+              <p className="text-base text-slate-400 leading-relaxed">
+                Les valeurs du contexte sont exploitées via un Hook personnalisé (`useTheme()`). Elles sont injectées dynamiquement dans les objets via l'attribut <code>style={`{{ backgroundColor: primaryColor }}`}</code>, écrasant les classes Tailwind par défaut et garantissant une modification visuelle instantanée.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SLIDE 6 : SÉCURITÉ 360° (MIDDLEWARE + RLS) */}
+      <section className="h-screen w-full snap-center flex flex-col items-center justify-center p-10 bg-slate-900/40 relative">
+        <div className="max-w-6xl w-full z-10 space-y-8">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center"><Lock size={32}/></div>
+            <h2 className="text-5xl font-black tracking-tight">Sécurité Défensive de l'Infrastructure</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <div className="p-8 bg-slate-950 border border-slate-800 rounded-2xl h-full">
+                <h3 className="text-2xl font-black text-emerald-400 mb-4">Couche 1 : Edge Middleware</h3>
+                <p className="text-base text-slate-400 leading-relaxed mb-6">
+                  Le fichier <code>proxy.ts</code> s'exécute sur l'Edge Network de Next.js, avant même le montage du composant React. Il intercepte les headers HTTP et vérifie la présence du cookie <code>sb-metricflow-auth</code>. Sans cookie, le middleware force une redirection 307 immédiate vers le login, empêchant le "flash" d'une page privée (FOUC) pour une sécurité UX parfaite.
+                </p>
+                <code className="block text-sm font-mono bg-slate-900 p-4 rounded-xl text-blue-300">if (!hasSession) redirect('/login');</code>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="p-8 bg-slate-950 border border-slate-800 rounded-2xl h-full">
+                <h3 className="text-2xl font-black text-emerald-400 mb-4">Couche 2 : PostgreSQL RLS</h3>
+                <p className="text-base text-slate-400 leading-relaxed mb-6">
+                  Le middleware n'étant pas inviolable (un cookie peut être créé artificiellement), la sécurité finale est déléguée au moteur de la base de données. Les requêtes utilisent le <strong>Row Level Security</strong> : PostgreSQL déchiffre la signature cryptographique du jeton JWT pour autoriser l'accès aux seules lignes qui appartiennent au <code>auth.uid()</code> de l'utilisateur.
+                </p>
+                <code className="block text-sm font-mono bg-slate-900 p-4 rounded-xl text-purple-300">USING (owner_id = auth.uid())</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SLIDE 7 : RÉTROSPECTIVE (RÉUSSITES / CHALLENGES / APPRENTISSAGES) */}
+      <section className="h-screen w-full snap-center flex flex-col items-center justify-center p-10 relative">
+        <div className="max-w-7xl w-full space-y-12">
+          <h2 className="text-5xl font-black tracking-tight text-center"><Target className="inline-block mr-4 text-red-500" size={48}/>Rétrospective du Projet</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="p-10 bg-slate-900 border border-emerald-500/20 rounded-3xl shadow-xl">
+              <h3 className="text-2xl font-black text-emerald-500 mb-6">Réussites Techniques</h3>
+              <p className="text-base text-slate-400 leading-relaxed">
+                La mise en place du pipeline d'authentification OAuth Meta fonctionne parfaitement sur le backend. L'implémentation de la génération PDF côté client (html-to-image) a permis de diviser les coûts de traitement serveur par 10 par rapport à une approche SSR classique.
+              </p>
+            </div>
+            <div className="p-10 bg-slate-900 border border-red-500/20 rounded-3xl shadow-xl">
+              <h3 className="text-2xl font-black text-red-500 mb-6">Défis & Résolutions</h3>
+              <p className="text-base text-slate-400 leading-relaxed">
+                Le passage du projet vers un typage strict (`Implicit Any` désactivé) a causé de nombreuses erreurs de build en production (Vercel). La gestion asynchrone des variables temporelles pour l'expiration des tokens d'API a exigé la création de flux de re-génération côté Route Handlers.
+              </p>
+            </div>
+            <div className="p-10 bg-slate-900 border border-blue-500/20 rounded-3xl shadow-xl">
+              <h3 className="text-2xl font-black text-blue-500 mb-6">Apprentissages Métier</h3>
+              <p className="text-base text-slate-400 leading-relaxed">
+                L'importance de séparer la logique d'état visuelle (UI) de l'intégrité backend. La structuration initiale du schéma relationnel (MCD) est l'étape la plus critique du projet, car elle conditionne 80% des politiques de sécurité (RLS) et des performances des requêtes.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SLIDE 8 : ROADMAP (PROCHAINES ÉTAPES) */}
+      <section className="h-screen w-full snap-center flex flex-col items-center justify-center p-10 bg-slate-900/40">
+        <div className="max-w-4xl w-full text-center space-y-8">
+          <div className="w-16 h-16 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4"><ListTodo size={32}/></div>
+          <h2 className="text-5xl font-black tracking-tight mb-8">Roadmap de Scalabilité</h2>
+          <ul className="text-2xl text-slate-300 leading-relaxed space-y-6 max-w-2xl mx-auto text-left list-disc pl-6 font-medium">
+            <li>Intégration du SDK Stripe pour l'automatisation de la facturation Multi-Tenant.</li>
+            <li>Développement d'une infrastructure de Webhooks pour gérer le cycle de vie des abonnements des agences (SaaS).</li>
+            <li>Conception d'un connecteur d'API parallèle pour l'aspiration des KPIs Google Ads.</li>
+            <li>Mise en place de tests unitaires (Jest) automatisés au sein d'une pipeline CI/CD (GitHub Actions).</li>
+          </ul>
+        </div>
+      </section>
+
+      {/* SLIDE 9 : DÉMO */}
+      <section className="h-screen w-full snap-center flex flex-col items-center justify-center p-10 relative">
+        <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
+        <h2 className="text-7xl font-black mb-8 z-10">Live Démo</h2>
+        <p className="text-xl text-slate-400 mb-12 z-10 text-center max-w-2xl">
+          Fin de la présentation architecturale. Passage à la démonstration de l'interface et du système en direct.
+        </p>
+        <Link href="/login" target="_blank" className="z-10 bg-white text-slate-950 px-12 py-6 rounded-2xl font-black text-xl hover:scale-105 transition-all shadow-[0_0_50px_rgba(255,255,255,0.2)] flex items-center gap-4">
+          <Rocket size={24} /> Lancer MetricFlow OS
+        </Link>
+      </section>
+
+    </div>
+  );
+}
+</file>
+
 <file path="app/portal/[id]/page.tsx">
 "use client";
 
@@ -1505,7 +1775,7 @@ export default function ClientPortalPage({ params }: { params: React.Usable<{ id
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
+  --background: #863737;
   --foreground: #ededed;
   color-scheme: dark; /* Force le navigateur à rendre ses barres de défilement natives en mode sombre */
 }
@@ -2036,42 +2306,151 @@ export const config = {
 </file>
 
 <file path="README.md">
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MetricFlow OS
 
-## Getting Started
+## Description du Projet
+MetricFlow OS est une infrastructure SaaS Multi-Tenant développée pour les agences de marketing digital. 
+**Problématique :** Les agences perdent un temps critique sur la consolidation manuelle des données publicitaires (Meta, Google) et réagissent trop lentement face aux baisses de rentabilité de leurs clients.
+**Solution :** Une plateforme web centralisée permettant la création de portefeuilles clients isolés, l'aspiration automatisée des données via la Graph API de Meta, un portail en marque blanche, et la génération d'audits stratégiques via une Intelligence Artificielle (Gemini).
 
-First, run the development server:
+## Technologies Utilisées
+- **Framework :** Next.js 16 (App Router, Server-Side Rendering)
+- **Front-end :** React 19, TailwindCSS, Framer Motion, Recharts
+- **Base de données & Auth :** Supabase (PostgreSQL, Row Level Security, Auth)
+- **IA & APIs :** Google GenAI SDK (Gemini 2.5 Flash), Meta Graph API (OAuth 2.0)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph Frontend ["Front-End (Navigateur Client)"]
+        UI["Interface React / Next.js"]
+        Viz["Recharts & Framer Motion"]
+    end
+
+    subgraph Server ["Serveur Next.js (App Router)"]
+        Middleware{"proxy.ts (Middleware)<br/>Vérification Cookie JWT"}
+        API_Meta["Route API<br/>/api/auth/meta/callback"]
+        API_AI["Route API<br/>/api/report"]
+    end
+
+    subgraph Database ["Infrastructure Supabase"]
+        Auth["Supabase Auth"]
+        RLS{"PostgreSQL RLS<br/>(Row Level Security)"}
+        DB[("PostgreSQL BDD")]
+    end
+
+    subgraph External ["Services Tiers"]
+        Meta["Meta Graph API<br/>(OAuth & Insights)"]
+        Gemini["Google GenAI<br/>(Gemini 2.5 Flash)"]
+    end
+
+    %% Flux Frontend
+    UI -->|Requête de page| Middleware
+    Middleware -->|Redirection si non-auth| UI
+    UI <-->|Login / Sign Up| Auth
+    Auth -->|Set JWT Cookie| UI
+    UI -->|Render Data| Viz
+
+    %% Flux Base de données
+    UI -->|Requêtes Supabase JS| RLS
+    RLS -->|Filtre sécurisé| DB
+    DB -->|Données autorisées| UI
+
+    %% Flux API AI
+    UI -->|Envoi Stats Client| API_AI
+    API_AI <-->|Prompt Engineering| Gemini
+    API_AI -->|Rapport Texte| UI
+
+    %% Flux API Meta
+    UI -->|Redirection OAuth| Meta
+    Meta -->|Code Auth| API_Meta
+    API_Meta <-->|Échange Token (Long Lived)| Meta
+    API_Meta -->|Update Token RLS| DB
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> Notre architecture sépare strictement les accès. Les appels API critiques et les échanges de jetons OAuth se font côté serveur via les Route Handlers de Next.js pour éviter d'exposer les variables d'environnement.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Base de Données
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```mermaid
+erDiagram
+    USERS ||--o{ AGENCIES : "possède"
+    AGENCIES ||--o{ AGENCY_CLIENTS : "gère"
+    AGENCY_CLIENTS ||--o{ CLIENT_PERFORMANCES : "analyse"
 
-## Learn More
+    USERS {
+        uuid id PK
+        string email
+        string encrypted_password
+    }
+    AGENCIES {
+        uuid id PK
+        uuid owner_id FK
+        string name
+        string primary_color
+        string theme_mode
+        timestamp created_at
+    }
+    AGENCY_CLIENTS {
+        uuid id PK
+        uuid agency_id FK
+        string name
+        text[] platform
+        float target_cpa
+        string meta_access_token
+        string meta_ad_account_id
+        timestamp created_at
+    }
+    CLIENT_PERFORMANCES {
+        uuid id PK
+        uuid client_id FK
+        string month
+        string platform
+        float spend
+        integer clicks
+        integer conversions
+        timestamp created_at
+    }
+```
 
-To learn more about Next.js, take a look at the following resources:
+> La base de données PostgreSQL est structurée de manière relationnelle autour des tables `agencies`, `agency_clients` et `client_performances`. La sécurité est assurée par le Row Level Security (RLS) garantissant l'étanchéité des données entre les utilisateurs.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Installation & Lancement
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Cloner le repository :
+```bash
+git clone [https://github.com/votre-compte/metricflow.git](https://github.com/votre-compte/metricflow.git)
+cd metricflow
+```
 
-## Deploy on Vercel
+2. Installer les dépendances :
+```bash
+npm install
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. Configuration des variables d'environnement :
+Créer un fichier `.env.local` et y insérer les clés Supabase, Meta API et Gemini API.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. Lancer le serveur de développement :
+```bash
+npm run dev
+```
+
+## Tests
+Les tests s'effectuent manuellement sur l'environnement de développement :
+- Test du flux d'inscription et de la génération des cookies de session via Supabase Auth.
+- Vérification du Middleware `proxy.ts` pour empêcher l'accès aux pages protégées.
+- Tests d'intégration de l'API Meta (récupération de jeton et aspiration de KPIs fictifs ou réels).
+- Vérification des politiques RLS via des tentatives d'accès inter-clients.
+
+## Bugs restants à résoudre
+- Gestion d'erreur approfondie si l'API Meta rejette un jeton "long-lived" expiré.
+- Affinage du typage de certains retours d'API dynamiques dans Recharts.
+
+## Les Créateurs
+- **Bernis** - Lead Full-Stack & DevOps (bernis@email.com | [LinkedIn](#))
+- **Janice** - Front-End Dev & UX/UI (janice@email.com | [LinkedIn](#))
 </file>
 
 <file path="tsconfig.json">

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
+  --background: #863737;
   --foreground: #ededed;
   color-scheme: dark; /* Force le navigateur à rendre ses barres de défilement natives en mode sombre */
 }

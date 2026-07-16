@@ -6,9 +6,10 @@ import Link from "next/link";
 import { useTheme } from "@/app/theme-context";
 import { 
   ArrowLeft, Sparkles, Download, BarChart3, Calendar, 
-  Copy, Check, Target, AlertTriangle, Save, Link2, Trash2, Edit2, X
+  Copy, Check, Target, AlertTriangle, Save, Link2, Trash2, Edit2, X, ShieldCheck
 } from "lucide-react";
 import jsPDF from "jspdf";
+import * as htmlToImage from "html-to-image";
 import type { Client, Agency, ClientPerformance } from "@/lib/types";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 import { motion } from "framer-motion";
@@ -17,7 +18,6 @@ export default function ClientPage({ params }: { params: React.Usable<{ id: stri
   const { id } = React.use(params);
   const { themeMode, primaryColor, agencyName } = useTheme();
 
-  // ADIEU LES ANY !
   const [client, setClient] = useState<Client | null>(null);
   const [performances, setPerformances] = useState<ClientPerformance[]>([]);
   const [unauthorized, setUnauthorized] = useState(false);
@@ -39,6 +39,7 @@ export default function ClientPage({ params }: { params: React.Usable<{ id: stri
   const [report, setReport] = useState("");
   const [reportError, setReportError] = useState<string | null>(null); 
   const [copied, setCopied] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -86,7 +87,6 @@ export default function ClientPage({ params }: { params: React.Usable<{ id: stri
     await supabase.from("agency_clients").update({ meta_ad_account_id: adAccountId }).eq("id", id);
   };
 
-  // LE MOTEUR D'ASPIRATION META ADS
   const handleSyncMeta = async () => {
     if (!client?.meta_ad_account_id) {
       alert("Veuillez renseigner l'ID du compte publicitaire (ex: act_123456789).");
@@ -200,7 +200,31 @@ export default function ClientPage({ params }: { params: React.Usable<{ id: stri
     finally { setIsGenerating(false); }
   };
 
-  const downloadPDF = () => { /* Même fonction PDF qu'avant */ };
+  const downloadPDF = async () => {
+    const reportElement = document.getElementById('report-container');
+    if (!reportElement) {
+      alert("Aucun rapport à exporter.");
+      return;
+    }
+    
+    setIsDownloading(true);
+    try {
+      const isDark = themeMode === "dark";
+      const dataUrl = await htmlToImage.toPng(reportElement, { quality: 0.95, backgroundColor: isDark ? '#0f172a' : '#ffffff' });
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (reportElement.offsetHeight * pdfWidth) / reportElement.offsetWidth;
+      
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Audit_MetricFlow_${client?.name || 'Client'}.pdf`);
+    } catch (error) {
+      console.error("Erreur lors de la génération du PDF :", error);
+      alert("Échec de la création du PDF.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   if (pageLoading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center italic font-black text-slate-500 animate-pulse text-xs">Vérification...</div>;
   if (unauthorized || !client) return <div className="min-h-screen bg-slate-950 flex justify-center p-6"><AlertTriangle size={32} className="text-red-500"/></div>;
@@ -247,9 +271,16 @@ export default function ClientPage({ params }: { params: React.Usable<{ id: stri
             )}
           </div>
           <div className="flex gap-3 flex-wrap">
-            <button onClick={handleDeleteClient} className="bg-red-500/10 text-red-500 px-6 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2"><Trash2 size={16}/> Supprimer</button>
-            <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/portal/${id}`); setCopied(true); setTimeout(()=>setCopied(false), 2000); }} className={`${bgCard} border px-6 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2`}>{copied ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>} Lien Public</button>
-            <button onClick={handleGenerateReport} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2"><Sparkles size={16} className={isGenerating ? "animate-spin" : ""}/> {isGenerating ? "Analyse..." : "Générer Rapport IA"}</button>
+            <button onClick={handleDeleteClient} className="bg-red-500/10 text-red-500 px-6 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2 hover:bg-red-500 hover:text-white transition-colors"><Trash2 size={16}/> Supprimer</button>
+            <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/portal/${id}`); setCopied(true); setTimeout(()=>setCopied(false), 2000); }} className={`${bgCard} border px-6 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2 hover:border-blue-500 transition-colors`}>{copied ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>} Lien Public</button>
+            <button onClick={handleGenerateReport} disabled={isGenerating} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2 hover:bg-blue-700 transition-colors disabled:opacity-50"><Sparkles size={16} className={isGenerating ? "animate-spin" : ""}/> {isGenerating ? "Analyse..." : "Générer Rapport IA"}</button>
+            
+            {/* BOUTON PDF */}
+            {report && (
+              <button onClick={downloadPDF} disabled={isDownloading} className="bg-slate-800 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase flex items-center gap-2 hover:bg-slate-700 transition-colors disabled:opacity-50">
+                <Download size={16} className={isDownloading ? "animate-bounce" : ""} /> {isDownloading ? "Création..." : "Télécharger PDF"}
+              </button>
+            )}
           </div>
         </header>
 
@@ -282,9 +313,26 @@ export default function ClientPage({ params }: { params: React.Usable<{ id: stri
 
         {report && (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mb-12">
-            <div className={`p-10 rounded-[2.5rem] shadow-2xl border ${isDark ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200'}`}>
-              <h2 className="text-2xl font-black text-blue-500 mb-8 flex items-center gap-3"><BarChart3 size={28} /> ANALYSE STRATÉGIQUE</h2>
-              <div className="whitespace-pre-wrap leading-relaxed text-lg font-medium">{report}</div>
+            
+            {/* CONTENEUR DU RAPPORT (Format A4 Corporate) */}
+            <div id="report-container" className={`p-12 md:p-16 shadow-2xl border ${isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-900'}`}>
+              
+              {/* EN-TÊTE CORPORATE STRICT (Comme sur ton modèle) */}
+              <div className="mb-12 border-b-2 border-slate-200/50 pb-8">
+                <h1 className="text-5xl font-black tracking-tighter uppercase mb-6" style={{ color: primaryColor }}>
+                  {agencyName}
+                </h1>
+                <div className="text-sm font-black uppercase tracking-widest text-slate-500 space-y-2">
+                  <p>DOSSIER CLIENT : {client.name}</p>
+                  <p>ÉMIS LE : {new Date().toLocaleDateString('fr-FR')}</p>
+                </div>
+              </div>
+
+              {/* CORPS DE L'AUDIT IA */}
+              <div className="whitespace-pre-wrap leading-relaxed text-sm font-medium text-justify">
+                {report}
+              </div>
+              
             </div>
           </motion.div>
         )}
