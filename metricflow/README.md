@@ -13,7 +13,6 @@ MetricFlow OS est une infrastructure SaaS Multi-Tenant développée pour les age
 
 ## Architecture
 
-```mermaid
 flowchart TD
     subgraph Frontend ["Front-End"]
         UI["Interface React / Next.js"]
@@ -60,7 +59,11 @@ flowchart TD
     API_Meta <-->|"Échange Token"| Meta
     API_Meta -->|Update Token| DB
 
-    erDiagram
+    
+    ## Base de Données
+
+```mermaid
+erDiagram
     USERS ||--o{ AGENCIES : "possède"
     AGENCIES ||--o{ AGENCY_CLIENTS : "gère"
     AGENCY_CLIENTS ||--o{ CLIENT_PERFORMANCES : "analyse"
